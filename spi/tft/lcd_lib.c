@@ -192,12 +192,6 @@ int lcd_display_on(void)
 	return w8(0x29, flag_cmd);
 }
 
-int lcd_memory_area_write(int x1, int y1, int x2, int y2, const unsigned char *buf, int size)
-{
-	lcd_address_set(x1, y1, x2, y2);
-	return wc8_then_wdbuf(0x2c, buf, size);
-}
-
 int lcd_column_address_set(int x1, int x2)
 {
 	unsigned char tbuf[4];
@@ -218,15 +212,64 @@ int lcd_page_address_set(int y1, int y2)
 	return wc8_then_wdbuf(0x2b, tbuf, 4);
 }
 
-int lcd_memory_area_read(int x1, int y1, int x2, int y2, unsigned char *buf, int size)
+int lcd_cursor_reset(void)
 {
-	int err=0;
-	int area_size=(x2-x1+1)*(y2-y1+1);
-	int min = size<area_size ? size : area_size;
+	return w8(0x2c,flag_cmd);
+}
 
-	lcd_address_set(x1,y1,x2,y2);
-	err = wc8_then_rdbuf(0x2e, buf, min);
-	return err? err : min;
+// int lcd_memory_area_write(int x1, int y1, int x2, int y2, const unsigned char *buf, int size)
+// {
+// 	lcd_address_set(x1, y1, x2, y2);
+// 	return wc8_then_wdbuf(0x2c, buf, size);
+// }
+
+// int lcd_memory_continue_write(const unsigned char *buf, int size)
+// {
+// 	return wc8_then_wdbuf(0x3c, buf, size);
+// }
+
+int lcd_memory_area_write(const unsigned char *buf, int size, int _continue)
+{
+	if(_continue)
+		return wc8_then_wdbuf(0x3c, buf, size);
+	else
+		return wc8_then_wdbuf(0x2c, buf, size);
+}
+
+int lcd_memory_write(const unsigned char *buf, int size, int _continue)
+{
+	lcd_address_set(0,0,320,240);
+	return lcd_memory_area_write(buf, size, _continue);
+}
+
+// int lcd_memory_area_read(int x1, int y1, int x2, int y2, unsigned char *buf, int size)
+// {
+// 	int err=0;
+// 	int area_size=(x2-x1+1)*(y2-y1+1);
+// 	int min = size<area_size ? size : area_size;
+
+// 	lcd_address_set(x1,y1,x2,y2);
+// 	err = wc8_then_rdbuf(0x2e, buf, min);
+// 	return err? err : min;
+// }
+
+// int lcd_memory_continue_read(unsigned char *buf, int size)
+// {
+// 	return wc8_then_wdbuf(0x3e, buf,size);
+// }
+
+int lcd_memory_area_read(unsigned char *buf, int size, int _continue)
+{
+	if(_continue)
+		return wc8_then_wdbuf(0x2e, buf,size);
+	else
+		return wc8_then_wdbuf(0x3e, buf,size);
+}
+
+int lcd_memory_read(unsigned char *buf, int size, int _continue)
+{
+	lcd_address_set(0,0,320,240);
+	return lcd_memory_area_read(buf, size, _continue);
 }
 
 int lcd_power_contral_a(int reg_vd, int vbc)
