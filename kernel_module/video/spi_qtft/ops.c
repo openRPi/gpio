@@ -138,7 +138,14 @@ ssize_t ops_write(struct fb_info *info, const char __user *buf, size_t count, lo
 
 	printk(KERN_INFO "count=%d, pos=%d, x1=%d, y1=%d, x2=%d, y2=%d\n",count,p,x1,y1,x2,y2);
 
-	err = lcd_memory_area_write(x1,y1,x2,y2,fb_buf,count);
+	if(p==0)
+	{
+		err = lcd_cursor_reset();
+		if(err)
+			goto err0;
+	}
+
+	err = lcd_memory_area_write(fb_buf,count, 1);
 	if(err)
 		goto err0;
 
@@ -215,7 +222,7 @@ struct fb_ops qtft_fb_ops =
 {
 	.owner = THIS_MODULE,
 	
-	.fb_read      = ops_read,
+	// .fb_read      = ops_read,
 	.fb_write     = ops_write,
 
 	/* checks var and eventually tweaks it to something supported,
