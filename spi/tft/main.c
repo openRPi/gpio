@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
-#include "gui.h"
+#include "lcd_lib.h"
+#include "pic.h"
 
 int loop_run = 1;
 
@@ -14,23 +15,18 @@ int main()
 {	
 	printf("----------QVGA TFT----------\n\n");
 
-	if(!GUI_init())
+	if(lcd_init()!=0)
 	{
-		printf("GUI init ERROR!\n");
+		printf("LCD init ERROR!\n");
 		return 1;
 	}
-	
-	signal(SIGINT, loop_stop);
-	
-	while(loop_run)
-	{
-		GUI_show_pic(0, 0, 0, 240, 320);
-		sleep(5);
-		GUI_show_pic(1, 0, 0, 240, 320);
-		sleep(5);
-	}
 
-	GUI_close();	
+	lcd_hard_reset();
+	lcd_normal_config();
+	
+	lcd_memory_write(pic_table[0],320*240*2,0);
+
+	lcd_exit();
 	
 	return 0;
 }

@@ -24,6 +24,9 @@
  */
 #define BUS_NUM 2
 
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
+
 struct i2c_adapter * adap=NULL;
 struct i2c_client * client=NULL;
 
@@ -35,7 +38,7 @@ static struct i2c_board_info chr_iic_dev_board_info[] __initdata = {
 
 static int __init chr_iic_dev_init(void)
 {
-	printk(KERN_INFO "++ chr_iic_dev_init ++\n");
+	func_in();
 
 	/**
 	 * 获取 I2C适配器
@@ -55,13 +58,13 @@ static int __init chr_iic_dev_init(void)
 	else
 		return -ENODEV;
 
-	printk(KERN_INFO "-- chr_iic_dev_init --\n");
+	func_out();
 	return 0;
 }
 
 static void __exit chr_iic_dev_exit(void)
 {
-	printk(KERN_INFO "++ chr_iic_dev_exit ++\n");
+	func_in();
 
 	if(client)
 	{
@@ -74,7 +77,7 @@ static void __exit chr_iic_dev_exit(void)
 		i2c_put_adapter(adap);
 		printk(KERN_INFO "release adap (bus %d)\n",BUS_NUM);
 	}
-	printk(KERN_INFO "-- chr_iic_dev_exit --\n");
+	func_out();
 }
 
 module_init(chr_iic_dev_init);
