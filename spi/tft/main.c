@@ -15,11 +15,14 @@ int main()
 {	
 	printf("----------QVGA TFT----------\n\n");
 
-	if(lcd_init_normal()!=0)
+	if(lcd_init()!=0)
 	{
 		printf("LCD init ERROR!\n");
 		return 1;
 	}
+
+	lcd_hard_reset();
+	lcd_normal_config();
 	
 	lcd_memory_write(pic_table[0],320*240*2,0);
 

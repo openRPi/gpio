@@ -2,18 +2,22 @@
 #define __lcd_lib__
 
 // -------------- init & sleep & display ----------------
-extern int lcd_soft_reset(void);
+
 /**
- * 以默认的配置初始化
+ * 初始化硬件，应该第一个调用
  * @return  0或错误号
  */
 extern int lcd_init(void);
+extern void lcd_exit(void);
+
+extern int lcd_soft_reset(void);
+extern int lcd_hard_reset(void);
+
 /**
  * 以常用的配置初始化
  * @return  0或错误号
  */
-extern int lcd_init_normal(void);
-extern void lcd_exit(void);
+extern int lcd_normal_config(void);
 
 extern int lcd_sleep_in(int delay);
 extern int lcd_sleep_out(void);

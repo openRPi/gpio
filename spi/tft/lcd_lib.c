@@ -7,7 +7,6 @@
 
 #define TFT_RST RPI_V2_GPIO_P1_11
 #define TFT_DC  RPI_V2_GPIO_P1_12 
-// #define TFT_CS  RPI_V2_GPIO_P1_24
 
 enum flag_t {
 	flag_data,
@@ -23,6 +22,15 @@ enum flag_t {
 void delay_ms(int ms)
 {
 	bcm2835_delay(ms);
+}
+
+/**
+ * RESET 管脚控制，可重写
+ * @param x 0或1
+ */
+void iface_set_reset(int x)
+{
+	bcm2835_gpio_write(TFT_RST,x);
 }
 
 /**
@@ -45,13 +53,6 @@ int iface_init(void)
 	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_8);
 	bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
 	bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, 0);
-
-	bcm2835_gpio_write(TFT_RST, HIGH);
-    delay_ms(5);
-	bcm2835_gpio_write(TFT_RST, LOW);
-	delay_ms(20);
-	bcm2835_gpio_write(TFT_RST, HIGH);
-	delay_ms(120);
 
 	return 0;
 }
@@ -217,17 +218,6 @@ int lcd_cursor_reset(void)
 	return w8(0x2c,flag_cmd);
 }
 
-// int lcd_memory_area_write(int x1, int y1, int x2, int y2, const unsigned char *buf, int size)
-// {
-// 	lcd_address_set(x1, y1, x2, y2);
-// 	return wc8_then_wdbuf(0x2c, buf, size);
-// }
-
-// int lcd_memory_continue_write(const unsigned char *buf, int size)
-// {
-// 	return wc8_then_wdbuf(0x3c, buf, size);
-// }
-
 int lcd_memory_area_write(const unsigned char *buf, int size, int _continue)
 {
 	if(_continue)
@@ -241,22 +231,6 @@ int lcd_memory_write(const unsigned char *buf, int size, int _continue)
 	lcd_address_set(0,0,320,240);
 	return lcd_memory_area_write(buf, size, _continue);
 }
-
-// int lcd_memory_area_read(int x1, int y1, int x2, int y2, unsigned char *buf, int size)
-// {
-// 	int err=0;
-// 	int area_size=(x2-x1+1)*(y2-y1+1);
-// 	int min = size<area_size ? size : area_size;
-
-// 	lcd_address_set(x1,y1,x2,y2);
-// 	err = wc8_then_rdbuf(0x2e, buf, min);
-// 	return err? err : min;
-// }
-
-// int lcd_memory_continue_read(unsigned char *buf, int size)
-// {
-// 	return wc8_then_wdbuf(0x3e, buf,size);
-// }
 
 int lcd_memory_area_read(unsigned char *buf, int size, int _continue)
 {
@@ -293,22 +267,26 @@ int lcd_soft_reset(void)
 	return w8(0x01, flag_cmd);
 }
 
-int lcd_init(void)
+int lcd_hard_reset(void)
 {
-	int err=0;
-
-	err = iface_init();
-	if(err)
-		return err;
-
+	iface_set_reset(1);
+	delay_ms(5);
+	iface_set_reset(0);
+	delay_ms(20);
+	iface_set_reset(1);
+	delay_ms(120);
 	return 0;
 }
 
-int lcd_init_normal(void)
+int lcd_init(void)
+{
+	return iface_init();
+}
+
+int lcd_normal_config(void)
 {
 	#define return_err(func) do{int err=func; if(err){return err;}}while(0)
 
-	return_err( lcd_init() );
 	return_err( lcd_memory_access_control(MEMORY_ACCESS_NORMAL) );
 	return_err( lcd_pixel_format_set(PIXEL_FORMAT_16) );
 	return_err( lcd_power_contral_a(0,0) );
