@@ -1,13 +1,14 @@
 // ILI9341 芯片
 // 
+
+#include <linux/kernel.h>
+#include <linux/errno.h>
+#include <linux/delay.h>
+
+#include "qtft_spi.h"
+#include "qtft_gpio.h"
+
 #include "lcd_lib.h"
-#include "bcm2835.h"
-
-#define NULL ((void *)0)
-
-#define TFT_RST RPI_V2_GPIO_P1_11
-#define TFT_DC  RPI_V2_GPIO_P1_12 
-// #define TFT_CS  RPI_V2_GPIO_P1_24
 
 enum flag_t {
 	flag_data,
@@ -20,10 +21,11 @@ enum flag_t {
  * 
  * @param ms 毫秒
  */
-void delay_ms(int ms)
-{
-	bcm2835_delay(ms);
-}
+// void delay_ms(int ms)
+// {
+// 	;
+// }
+#define delay_ms(ms) msleep(ms)
 
 /**
  * 底层接口初始化
@@ -33,36 +35,28 @@ void delay_ms(int ms)
  */
 int iface_init(void)
 {
-	if(!bcm2835_init())
-		return -1;
+	int err=0;
 
-	bcm2835_gpio_fsel(TFT_RST, BCM2835_GPIO_FSEL_OUTP);
-	bcm2835_gpio_fsel(TFT_DC , BCM2835_GPIO_FSEL_OUTP);
-
-	bcm2835_spi_begin();
-
-	bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);
-	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_8);
-	bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
-	bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, 0);
-
-	bcm2835_gpio_write(TFT_RST, HIGH);
-    delay_ms(5);
-	bcm2835_gpio_write(TFT_RST, LOW);
+	qtft_gpio_set_reset(1);
+	delay_ms(5);
+	qtft_gpio_set_reset(0);
 	delay_ms(20);
-	bcm2835_gpio_write(TFT_RST, HIGH);
+	qtft_gpio_set_reset(1);
 	delay_ms(120);
 
-	return 0;
+	goto out;
+
+out:
+	return err;
 }
 
 /**
- * 释放底层接口
+ * 释放底层接口。
+ * 但这里不需要干什么
  */
 void iface_exit(void)
 {
-	bcm2835_spi_end();
-	bcm2835_close();
+	;
 }
 
 /**
@@ -83,26 +77,32 @@ int iface_write_then_read(const void *tbuf, int tn, void *rbuf, int rn, enum fla
 	switch(flag)
 	{
 		case flag_cmd: 
-			bcm2835_gpio_write(TFT_DC, 0);
+			qtft_gpio_set_dc(0);
 			break;
 
 		case flag_data:
-			bcm2835_gpio_write(TFT_DC, 1);
+			qtft_gpio_set_dc(1);
 			break;
 
 		default:
-			err = -1;
+			err = -EPERM;
 			goto out;
 	}
 
 	if(tn)
 	{
-		bcm2835_spi_writenb((char *)tbuf,tn);
+		// bcm2835_spi_writenb((char *)tbuf,tn);
+		err = qtft_spi_write(tbuf,tn);
+		if(err)
+			goto out;
 	}
 
 	if(rn)
 	{
-		bcm2835_spi_transfern((char *)rbuf,rn);
+		// bcm2835_spi_transfern((char *)rbuf,rn);
+		err = qtft_spi_read(rbuf,tn);
+		if(err)
+			goto out;
 	}
 
 	goto out;
@@ -192,6 +192,12 @@ int lcd_display_on(void)
 	return w8(0x29, flag_cmd);
 }
 
+int lcd_memory_area_write(int x1, int y1, int x2, int y2, const unsigned char *buf, int size)
+{
+	lcd_address_set(x1, y1, x2, y2);
+	return wc8_then_wdbuf(0x2c, buf, size);
+}
+
 int lcd_column_address_set(int x1, int x2)
 {
 	unsigned char tbuf[4];
@@ -212,64 +218,15 @@ int lcd_page_address_set(int y1, int y2)
 	return wc8_then_wdbuf(0x2b, tbuf, 4);
 }
 
-int lcd_cursor_reset(void)
+int lcd_memory_area_read(int x1, int y1, int x2, int y2, unsigned char *buf, int size)
 {
-	return w8(0x2c,flag_cmd);
-}
+	int err=0;
+	int area_size=(x2-x1+1)*(y2-y1+1);
+	int min = size<area_size ? size : area_size;
 
-// int lcd_memory_area_write(int x1, int y1, int x2, int y2, const unsigned char *buf, int size)
-// {
-// 	lcd_address_set(x1, y1, x2, y2);
-// 	return wc8_then_wdbuf(0x2c, buf, size);
-// }
-
-// int lcd_memory_continue_write(const unsigned char *buf, int size)
-// {
-// 	return wc8_then_wdbuf(0x3c, buf, size);
-// }
-
-int lcd_memory_area_write(const unsigned char *buf, int size, int _continue)
-{
-	if(_continue)
-		return wc8_then_wdbuf(0x3c, buf, size);
-	else
-		return wc8_then_wdbuf(0x2c, buf, size);
-}
-
-int lcd_memory_write(const unsigned char *buf, int size, int _continue)
-{
-	lcd_address_set(0,0,320,240);
-	return lcd_memory_area_write(buf, size, _continue);
-}
-
-// int lcd_memory_area_read(int x1, int y1, int x2, int y2, unsigned char *buf, int size)
-// {
-// 	int err=0;
-// 	int area_size=(x2-x1+1)*(y2-y1+1);
-// 	int min = size<area_size ? size : area_size;
-
-// 	lcd_address_set(x1,y1,x2,y2);
-// 	err = wc8_then_rdbuf(0x2e, buf, min);
-// 	return err? err : min;
-// }
-
-// int lcd_memory_continue_read(unsigned char *buf, int size)
-// {
-// 	return wc8_then_wdbuf(0x3e, buf,size);
-// }
-
-int lcd_memory_area_read(unsigned char *buf, int size, int _continue)
-{
-	if(_continue)
-		return wc8_then_wdbuf(0x2e, buf,size);
-	else
-		return wc8_then_wdbuf(0x3e, buf,size);
-}
-
-int lcd_memory_read(unsigned char *buf, int size, int _continue)
-{
-	lcd_address_set(0,0,320,240);
-	return lcd_memory_area_read(buf, size, _continue);
+	lcd_address_set(x1,y1,x2,y2);
+	err = wc8_then_rdbuf(0x2e, buf, min);
+	return err? err : min;
 }
 
 int lcd_power_contral_a(int reg_vd, int vbc)
