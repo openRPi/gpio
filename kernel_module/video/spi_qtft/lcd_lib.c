@@ -91,7 +91,6 @@ int iface_write_then_read(const void *tbuf, int tn, void *rbuf, int rn, enum fla
 
 	if(tn)
 	{
-		// bcm2835_spi_writenb((char *)tbuf,tn);
 		err = qtft_spi_write(tbuf,tn);
 		if(err)
 			goto out;
@@ -99,7 +98,6 @@ int iface_write_then_read(const void *tbuf, int tn, void *rbuf, int rn, enum fla
 
 	if(rn)
 	{
-		// bcm2835_spi_transfern((char *)rbuf,rn);
 		err = qtft_spi_read(rbuf,tn);
 		if(err)
 			goto out;
