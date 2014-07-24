@@ -10,11 +10,11 @@
 
 extern int LCD_init(void);
  
-extern void LCD_wr_data8(uint8_t da);
-extern void LCD_wr_data(uint16_t da);
-extern void LCD_wr_reg(uint16_t da);
-extern void LCD_set_addr(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2);
-extern void LCD_clear(uint16_t color);
+extern void LCD_wr_data8(unsigned char da);
+extern void LCD_wr_data(unsigned int da);
+extern void LCD_wr_reg(unsigned int da);
+extern void LCD_set_addr(unsigned int x1,unsigned int y1,unsigned int x2,unsigned int y2);
+extern void LCD_clear(unsigned int color);
 
 extern void LCD_close(void);
 
