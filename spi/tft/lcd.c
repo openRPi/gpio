@@ -38,7 +38,7 @@ void LCD_set_addr(unsigned int x1,unsigned int y1,unsigned int x2,unsigned int y
 
 }
 
-void LCD_init(void)
+int LCD_init(void)
 {
 	if(!bcm2835_init())
 		return 0;

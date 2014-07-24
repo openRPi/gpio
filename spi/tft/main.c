@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <signal.h>
-#include <time.h>
+#include <unistd.h>
 #include "gui.h"
 
 int loop_run = 1;

@@ -19204,4 +19204,4 @@ const unsigned char pic_1[153600] = { /* 0X00,0X10,0XF0,0X00,0X40,0X01,0X01,0X1B
 0XF7,0XCD,0XF6,0XCD,0XF6,0XCD,0XF6,0XCD,0XF6,0XCD,0XF6,0XCD,0XF6,0XCD,0XD6,0XCD,
 };
 
-char * pic_table[5] = {pic_0, pic_1};
+const unsigned char * pic_table[5] = {pic_0, pic_1};

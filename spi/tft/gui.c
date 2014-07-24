@@ -11,7 +11,7 @@ void GUI_draw_point(unsigned int x,unsigned int y, unsigned int color)
 	
 	for(i=0;i<9;i++)
 	{
-		LCD_wr_date(color); 
+		LCD_wr_data(color); 
 	}	    
 }
 
@@ -22,7 +22,7 @@ void GUI_fill(unsigned int x_start,unsigned int y_start,unsigned int x_end,unsig
 	for(i=y_start;i<=y_end;i++)
 	{													   	 	
 		for(j=x_start;j<=x_end;j++)
-			LCD_wr_date(color);	    
+			LCD_wr_data(color);	    
 	} 					  	    
 } 
 
@@ -142,11 +142,11 @@ void GUI_show_pic(unsigned char n, unsigned int x, unsigned int y, unsigned int 
 	num = wide * high * 2;
 	do
 	{
-		temp = pic_2[tmp + 1];
+		temp = pic_table[n][tmp + 1];
 		temp = temp << 8;
 		temp = temp | pic_table[n][tmp];
 
-		LCD_wr_date(temp);
+		LCD_wr_data(temp);
 
 		tmp += 2;
 	}
