@@ -1,21 +1,10 @@
-CC = arm-bcm2708-linux-gnueabi-gcc
+CC = gcc
 CFLAGS = -Wall -g
-bin_name = LCD.exe
+lib = ../../lib
+bin_name = tft_run.exe
 
-default: bcm2835.o main.o lcd.o gui.o
-	$(CC) $(CFLAGS) $^ -o $(bin_name)
-
-main.o: main.c lcd.h
-	$(CC) -c $<
-
-bcm2835.o: bcm2835.c bcm2835.h
-	$(CC) -c $<
-	
-lcd.o: lcd.c lcd.h bcm2835.h
-	$(CC) -c $<
-	
-gui.o: gui.c gui.h lcd.h 
-	$(CC) -c $<
+default: lcd.c pic.c gui.c main.c ../../lib/bcm2835.c
+	$(CC) $(CFLAGS) $^ -I $(lib) -L $(lib) -o $(bin_name)
 
 clean:
 	$(RM) $(bin_name) *.o
