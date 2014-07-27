@@ -8,27 +8,22 @@ int pcf8591_start(void)
 {
 	if(!bcm2835_init())
 		return 0;
+	bcm2835_i2c_begin();
+	bcm2835_i2c_setSlaveAddress(PCF8591_ADDR);
 	return 1;
 }
 
 void pcf8591_send_cmd(char channel)
 {
 	char buf[1] = { channel  };
-
-	bcm2835_i2c_begin();
-	bcm2835_i2c_setSlaveAddress(PCF8591_ADDR);
   	bcm2835_i2c_write(buf, 1);
-	bcm2835_i2c_end();
 }
 
 unsigned char pcf8591_read_byte(void)
 {
 	char buf[1] = {0};
 
-	bcm2835_i2c_begin();
-	bcm2835_i2c_setSlaveAddress(PCF8591_ADDR);
 	bcm2835_i2c_read(buf,1);
-	bcm2835_i2c_end();
 
 	return buf[0];
 }
