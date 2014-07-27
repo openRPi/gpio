@@ -17,6 +17,8 @@ int main()
 	if(!pcf8574_start())
 		printf("init error!");
 
+	printf("*************PCF8574-flow leds**************\n\n");
+
 	signal(SIGINT, loop_stop);
 
 	while(loop_run)
