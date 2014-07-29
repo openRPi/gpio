@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <signal.h>
-#include <unistd.h>
 #include "button.h"
 
 int loop_run = 1;
@@ -21,8 +20,7 @@ int main()
 	printf("Checking button,press Ctrl-C to exit...\n");
 	while(loop_run)
 	{
-		printf("btn = %d\n",button_value());
-		sleep(1);
+		printf("\rbtn = %d",button_value());
 	}
 	printf("Exit\n");
 
