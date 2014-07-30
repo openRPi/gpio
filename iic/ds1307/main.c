@@ -24,6 +24,8 @@ int main()
 		return 1;
 	}
 
+	ds1307_set_ch(DS1307_CH_ON);
+
 	printf("[S]how time, [E]dit Time, [Q]uit\n");
 	while(1)
 	{

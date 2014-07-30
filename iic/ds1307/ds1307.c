@@ -85,7 +85,7 @@ void ds1307_write_byte(int addr, char dat)
  */
 unsigned char to_mask(int a,int b)
 {
-	unsigned char mask = 0;
+	unsigned char mask = 1;
 	int dt=a-b;
 	while(dt--)
 	{
@@ -217,7 +217,7 @@ int ds1307_get_day(void)
 int ds1307_get_date(void)
 {
 	char byte = ds1307_read_byte(4);
-	return get_bits(byte,5,4)*10 + set_bits(byte,3,0);
+	return get_bits(byte,5,4)*10 + get_bits(byte,3,0);
 }
 
 /**
@@ -227,7 +227,7 @@ int ds1307_get_date(void)
 int ds1307_get_mon(void)
 {
 	char byte = ds1307_read_byte(5);
-	return get_bits(byte,4,4)*10 + set_bits(byte,3,0);
+	return get_bits(byte,4,4)*10 + get_bits(byte,3,0);
 }
 
 /**
@@ -237,7 +237,7 @@ int ds1307_get_mon(void)
 int ds1307_get_year(void)
 {
 	char byte = ds1307_read_byte(6);
-	return get_bits(byte,7,4)*10 + set_bits(byte,3,0);
+	return get_bits(byte,7,4)*10 + get_bits(byte,3,0);
 }
 
 /**
