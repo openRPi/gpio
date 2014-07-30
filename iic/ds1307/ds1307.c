@@ -84,7 +84,11 @@ char ds1307_read_byte(int addr)
  */
 void ds1307_write_byte(int addr, char dat)
 {
-	;
+	char wbuf[2] = {(char)addr, dat};
+	bcm2835_i2c_write(wbuf,2);
+	#if debug
+	printf("write %xH -> 0x%x\n",(char)addr,dat);
+	#endif
 }
 
 /**
@@ -100,6 +104,29 @@ int byte_join(char byt, int a,int b)
 	byt >>= b;
 	mask = pow(2,a-b+1) - 1;
 	return (int)(byt&mask);
+}
+
+/**
+ * 设置传入数据指定的位
+ * @param  dat 传入的数据
+ * @param  a   最高位
+ * @param  b   最低位
+ * @param  x   写入的数据
+ * @return     设置好的数据
+ */
+char bit_set(unsigned char dat,int a, int b, unsigned char x)
+{
+	unsigned char mask = 0;
+	int dt=a-b;
+	while(dt--)
+	{
+		mask <<= 1;
+		mask += 1;
+	}
+	mask <<= b;
+	dat &= ~mask;
+	dat |= x<<b;
+	return dat;
 }
 
 /**
@@ -242,7 +269,9 @@ void ds1307_set_sec(int sec)
  */
 void ds1307_set_min(int min)
 {
-	ds1307_write_byte(1,(unsigned char)min);
+	unsigned char dat=0;
+	dat = bit_set(bit_set(dat,7,4,min/10),3,0,min%10);
+	ds1307_write_byte(1,dat);
 }
 
 /**
@@ -270,7 +299,7 @@ void ds1307_set_hour_24(int hour)
 	last = ds1307_read_byte(2);
 	last = 0;
 	last += (unsigned char)hour;
-	ds1307_write_byte(3,last);
+	ds1307_write_byte(2,last);
 }
 
 /**
@@ -286,25 +315,33 @@ void ds1307_set_hour_12(int hour,int ap)
 	if(ap==DS1307_HOUR_PM)
 		hour += 12;
 	last += (unsigned char)hour;
-	ds1307_write_byte(3,last);
+	ds1307_write_byte(2,last);
 }
 
 void ds1307_set_day(int day)
 {
-	ds1307_write_byte(4,(unsigned char)day);
+	unsigned char dat=0;
+	dat = bit_set(bit_set(dat,7,4,day/10),3,0,day%10);
+	ds1307_write_byte(3,dat);
 }
 
 void ds1307_set_date(int date)
 {
-	ds1307_write_byte(5,(unsigned char)date);
+	unsigned char dat=0;
+	dat = bit_set(bit_set(dat,7,4,date/10),3,0,date%10);
+	ds1307_write_byte(4,dat);
 }
 
 void ds1307_set_mon(int mon)
 {
-	ds1307_write_byte(6,(unsigned char)mon);
+	unsigned char dat=0;
+	dat = bit_set(bit_set(dat,7,4,mon/10),3,0,mon%10);
+	ds1307_write_byte(5,dat);
 }
 
 void ds1307_set_year(int year)
 {
-	ds1307_write_byte(7,(unsigned char)year);
+	unsigned char dat=0;
+	dat = bit_set(bit_set(dat,7,4,year/10),3,0,year%10);
+	ds1307_write_byte(6,dat);
 }
