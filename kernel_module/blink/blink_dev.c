@@ -4,19 +4,14 @@
 #include <linux/miscdevice.h>
 #include <linux/uaccess.h>
 #include <linux/errno.h>
+#include <linux/gpio.h>
 
 /* 所有混杂设备的主设备号都为10
  * 混杂类目录 /sys/class/misc
  * 设备目录 /dev/blink_dev
  */
 
-#define GPIO_BASE	0x20200000
-#define GPFSEL1		0x0004
-#define GPSET0		0x001c
-#define GPCLR0		0x0028
-
-volatile int * gpio;
-static char echo_buf[50];
+#define GPIO_NUM 17
 
 static int blink_dev_open(struct inode * ip, struct file * fp)
 {
@@ -32,20 +27,27 @@ static int blink_dev_release(struct inode * ip, struct file * fp)
 
 static ssize_t blink_dev_read(struct file * filp, char __user * up, size_t size, loff_t * loffp)
 {
-	int min = size<sizeof(echo_buf)? size:sizeof(echo_buf);
-	printk(KERN_INFO "blink_dev_read size=%d\n",size);
-	if(copy_to_user(up,echo_buf,min))
+	char on[2];
+	
+	gpio_direction_input(GPIO_NUM);
+	on[0] = gpio_get_value(GPIO_NUM)? '1':'0';
+	on[1] = '\n';
+	printk(KERN_INFO "blink_dev_read: %c\n",on[0]);
+	if(copy_to_user(up,on,2))
 		return -EFAULT;
-	return min;
+	return size;
 }
 
 static ssize_t blink_dev_write(struct file * filp, const char __user * up, size_t size, loff_t * loffp)
 {
-	int min = size<sizeof(echo_buf)? size:sizeof(echo_buf);
-	printk(KERN_INFO "blink_dev_write size=%d\n",size);
-	if(copy_from_user(echo_buf,up, min ))
+	char on[1];
+
+	if(copy_from_user(on,up, 1 ))
 		return -EFAULT;
-	return min;
+	printk(KERN_INFO "blink_dev_write: %c\n",on[0]);
+	gpio_direction_output(GPIO_NUM,0);
+	gpio_set_value(GPIO_NUM,on[0]=='0'?0:1);
+	return size;
 }
 
 struct file_operations blink_dev_fops =
@@ -66,14 +68,17 @@ static struct miscdevice blink_dev =
 
 static int __init blink_dev_init(void)
 {
+	if(gpio_request(GPIO_NUM,"P1-11")<0)
+		return -EBUSY;
 	misc_register(&blink_dev);
-	printk(KERN_INFO "blink_dev init\n");
+	printk(KERN_INFO "blink_dev init GPIO=%d\n",GPIO_NUM);
 	return 0;
 }
 
 static void __exit blink_dev_exit(void)
 {
 	misc_deregister(&blink_dev);
+	gpio_free(GPIO_NUM);
 	printk(KERN_INFO "blink_dev exit\n");
 }
 

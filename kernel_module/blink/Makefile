@@ -11,6 +11,6 @@ else
 all:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules  ARCH=arm  CROSS_COMPILE=arm-linux-gnueabi-
 clean:
-	rm -rf .*.cmd *.o *.mod.c *.ko .tmp_versions
+	rm -rf .*.cmd *.o *.mod.c *.ko .tmp_versions *.order *.symvers
 
 endif
