@@ -45,7 +45,7 @@ int main()
 		}
 		else if(buf=='E' || buf == 'e')
 		{
-			printf("Input like this: 2014-8-1 10:0:0 5\n");
+			printf("Input like this: 14-8-1 10:0:0 5\n");
 			printf(">> ");
 
 			// 输入参数格式错误
