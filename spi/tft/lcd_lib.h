@@ -32,7 +32,8 @@ extern int lcd_display_on(void);
 #define MEMORY_ACCESS_NORMAL	0
 
 extern int lcd_memory_access_control(int mode);
-extern int lcd_memory_write(const unsigned char *buf, int size);
+extern int lcd_memory_area_write(int x1, int y1, int x2, int y2, const unsigned char *buf, int size);
+#define lcd_memory_write(buf,size)	lcd_memory_area_write(0,0,320,240,buf,size)
 /**
  * 读取显存
  * @param  buf  接收数组
@@ -41,7 +42,7 @@ extern int lcd_memory_write(const unsigned char *buf, int size);
  * @return      实际接收的字节数或错误号
  */
 extern int lcd_memory_area_read(int x1, int y1, int x2, int y2, unsigned char *buf, int size);
-#define lcd_memory_read(buf,size)  lcd_memory_area_read(0,0,0,0,buf,size)
+#define lcd_memory_read(buf,size)  lcd_memory_area_read(0,0,320,240,buf,size)
 
 // ------------ address access ------------------
 extern int lcd_column_address_set(int x1, int x2);

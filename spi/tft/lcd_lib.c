@@ -42,7 +42,7 @@ int iface_init(void)
 	bcm2835_spi_begin();
 
 	bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);
-	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_256);
+	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_8);
 	bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
 	bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, 0);
 
@@ -177,9 +177,9 @@ int lcd_display_on(void)
 	return w8(0x29, flag_cmd);
 }
 
-int lcd_memory_write(const unsigned char *buf, int size)
+int lcd_memory_area_write(int x1, int y1, int x2, int y2, const unsigned char *buf, int size)
 {
-	lcd_address_set(0,0,320,240);
+	lcd_address_set(x1, y1, x2, y2);
 	return wc8_then_wdbuf(0x2c, buf, size);
 }
 
