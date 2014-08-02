@@ -1,7 +1,17 @@
 #ifndef __lcd_lib__
 #define __lcd_lib__
 
+/**
+ * 以默认的配置初始化
+ * @return  0或错误号
+ */
 extern int lcd_init(void);
+/**
+ * 以常用的配置初始化
+ * @return  0或错误号
+ */
+extern int lcd_init_normal(void);
+
 extern void lcd_exit(void);
 
 #define PIXEL_FORMAT_16 0x55

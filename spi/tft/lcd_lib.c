@@ -39,8 +39,10 @@ int iface_init(void)
 	bcm2835_gpio_fsel(TFT_RST, BCM2835_GPIO_FSEL_OUTP);
 	bcm2835_gpio_fsel(TFT_DC , BCM2835_GPIO_FSEL_OUTP);
 
+	bcm2835_spi_begin();
+
 	bcm2835_spi_setDataMode(BCM2835_SPI_MODE3);
-	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_16);
+	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_256);
 	bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
 	bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, 0);
 
@@ -49,8 +51,6 @@ int iface_init(void)
 	bcm2835_gpio_write(TFT_RST, LOW);;
 	delay_ms(5);
 	bcm2835_gpio_write(TFT_RST, HIGH);;
-
-	bcm2835_spi_begin();
 
 	return 0;
 }
@@ -158,7 +158,7 @@ int wc8_then_rdbuf(unsigned char cmd, unsigned char *buf, int size)
 
 int lcd_sleep_out(void)
 {
-	return w8(0x10, flag_cmd);
+	return w8(0x11, flag_cmd);
 }
 
 int lcd_memory_access_control(int mode)
@@ -217,6 +217,17 @@ int lcd_init(void)
 	int err=0;
 
 	err = iface_init();
+	if(err)
+		return err;
+
+	return 0;
+}
+
+int lcd_init_normal(void)
+{
+	int err=0;
+
+	err = lcd_init();
 	if(err)
 		return err;
 

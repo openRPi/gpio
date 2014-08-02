@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
-#include "lib/lcd_lib.h"
+#include "lcd_lib.h"
 #include "pic.h"
 
 int loop_run = 1;
@@ -15,7 +15,7 @@ int main()
 {	
 	printf("----------QVGA TFT----------\n\n");
 
-	if(lcd_init()!=0)
+	if(lcd_init_normal()!=0)
 	{
 		printf("LCD init ERROR!\n");
 		return 1;
