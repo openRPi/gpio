@@ -2,6 +2,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include "lib/lcd_lib.h"
+#include "pic.h"
 
 int loop_run = 1;
 
@@ -20,7 +21,7 @@ int main()
 		return 1;
 	}
 	
-	
+	lcd_memory_write(pic_table[0],153600);
 
 	lcd_exit();
 	
