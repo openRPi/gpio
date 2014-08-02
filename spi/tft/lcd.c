@@ -47,7 +47,7 @@ int LCD_init(void)
 	bcm2835_gpio_fsel(TFT_DC, BCM2835_GPIO_FSEL_OUTP);
 		
 	bcm2835_spi_setDataMode(BCM2835_SPI_MODE3);
-	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_16);
+	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_256);
 	bcm2835_spi_chipSelect(BCM2835_SPI_CS_NONE);
 	bcm2835_spi_begin();
 
