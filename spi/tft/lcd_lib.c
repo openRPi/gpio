@@ -157,6 +157,16 @@ int wc8_then_rdbuf(unsigned char cmd, unsigned char *buf, int size)
 	return 0;
 }
 
+int lcd_sleep_in(int delay)
+{
+	int err=0;
+	err = w8(0x10,flag_cmd);
+	if(err || !delay)
+		return err;
+	delay_ms(delay);
+	return 0;
+}
+
 int lcd_sleep_out(void)
 {
 	return w8(0x11, flag_cmd);
@@ -170,6 +180,11 @@ int lcd_memory_access_control(int mode)
 int lcd_pixel_format_set(int mode)
 {
 	return wc8_then_wd8(0x3a, mode);
+}
+
+int lcd_display_off(void)
+{
+	return w8(0x28,flag_cmd);
 }
 
 int lcd_display_on(void)
@@ -214,6 +229,27 @@ int lcd_memory_area_read(int x1, int y1, int x2, int y2, unsigned char *buf, int
 	return err? err : min;
 }
 
+int lcd_power_contral_a(int reg_vd, int vbc)
+{
+	unsigned char buf[5] = {0x39,0x2c,0x00,
+		0x34|(reg_vd&0x07),0x02|(vbc&0x07)};
+
+	return wc8_then_wdbuf(0xcb, buf, 5);
+}
+
+int lcd_power_contral_b(int pc, int dc_ena)
+{
+	unsigned char buf[5] = {0x39,0x2c,0x00,
+		0x81|((pc<<3)&0x18), dc_ena? 0x40:0x30};
+
+	return wc8_then_wdbuf(0xcf, buf, 5);
+}
+
+int lcd_soft_reset(void)
+{
+	return w8(0x01, flag_cmd);
+}
+
 int lcd_init(void)
 {
 	int err=0;
@@ -227,21 +263,16 @@ int lcd_init(void)
 
 int lcd_init_normal(void)
 {
-	int err=0;
+	#define return_err(func) do{int err=func; if(err){return err;}}while(0)
 
-	err = lcd_init();
-	if(err)
-		return err;
+	return_err( lcd_init() );
+	return_err( lcd_memory_access_control(MEMORY_ACCESS_NORMAL) );
+	return_err( lcd_pixel_format_set(PIXEL_FORMAT_16) );
+	return_err( lcd_power_contral_a(0,0) );
+	return_err( lcd_power_contral_b(0,0) );
 
 	#define LCD_wr_reg(value) w8(value,flag_cmd)
 	#define LCD_wr_data8(value) w8(value,flag_data)
-
-	LCD_wr_reg(0xCB);  
-    LCD_wr_data8(0x39); 
-    LCD_wr_data8(0x2C); 
-    LCD_wr_data8(0x00); 
-    LCD_wr_data8(0x34); 
-    LCD_wr_data8(0x02); 
 
     LCD_wr_reg(0xCF);  
     LCD_wr_data8(0x00); 
@@ -278,12 +309,6 @@ int lcd_init_normal(void)
 
     LCD_wr_reg(0xC7);    //VCM control2 
     LCD_wr_data8(0x86);  //--
-
-    LCD_wr_reg(0x36);    // Memory Access Control 
-    LCD_wr_data8(0xE8); //C8	   //48 68竖屏//28 E8 横屏
-
-    LCD_wr_reg(0x3A);    
-    LCD_wr_data8(0x55); 
 
     LCD_wr_reg(0xB1);    
     LCD_wr_data8(0x00);  
@@ -337,23 +362,12 @@ int lcd_init_normal(void)
     #undef LCD_wr_reg 
 	#undef LCD_wr_data8 
 
-	// err = lcd_memory_access_control(MEMORY_ACCESS_NORMAL);
-	// if(err)
-	// 	return err;
-
-	// err = lcd_pixel_format_set(PIXEL_FORMAT_16);
-	// if(err)
-	// 	return err;
-
-	err = lcd_sleep_out();
-	if(err)
-		return err;
-
+	return_err( lcd_sleep_out() );
 	delay_ms(100);
 
-	err = lcd_display_on();
-	if(err)
-		return err;
+	return_err( lcd_display_on() );
+
+	#undef return_err
 
 	return 0;
 }

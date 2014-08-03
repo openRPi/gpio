@@ -9601,4 +9601,4 @@ const unsigned char pic0[153600] = { /* 0X10,0X10,0X01,0X40,0X00,0XF0,0X01,0X1B,
 0X00,0X21,0X00,0X21,0X00,0X21,0X00,0X21,0X00,0X21,0X00,0X21,0X00,0X21,0X00,0X21,
 };
 
-char const * pic_table [5] = {pic0};
+unsigned char const * pic_table [5] = {pic0};
