@@ -1,6 +1,8 @@
 #ifndef __lcd_lib__
 #define __lcd_lib__
 
+// -------------- init & sleep & display ----------------
+extern int lcd_soft_reset(void);
 /**
  * 以默认的配置初始化
  * @return  0或错误号
@@ -11,15 +13,18 @@ extern int lcd_init(void);
  * @return  0或错误号
  */
 extern int lcd_init_normal(void);
-
 extern void lcd_exit(void);
 
+extern int lcd_sleep_in(int delay);
+extern int lcd_sleep_out(void);
+
+extern int lcd_display_on(void);
+extern int lcd_display_off(void);
+
+// ---------------- pixel ------------------
 #define PIXEL_FORMAT_16 0x55
 #define PIXEL_FORMAT_18 0x66
 extern int lcd_pixel_format_set(int mode);
-
-extern int lcd_sleep_out(void);
-extern int lcd_display_on(void);
 
 // -------------- memory access ----------------
 
@@ -53,5 +58,9 @@ extern int lcd_page_address_set(int y1, int y2);
 											lcd_column_address_set(x1,x2); \
 											lcd_page_address_set(y1,y2); \
 										}while(0)
+
+// ------------------ Power control ------------------
+extern int lcd_power_contral_a(int reg_vd, int vbc);
+extern int lcd_power_contral_b(int pc, int dc_ena);
 
 #endif
