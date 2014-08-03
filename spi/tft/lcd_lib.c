@@ -233,6 +233,14 @@ int lcd_init_normal(void)
 	if(err)
 		return err;
 
+	err = lcd_memory_access_control(MEMORY_ACCESS_NORMAL);
+	if(err)
+		return err;
+
+	err = lcd_pixel_format_set(PIXEL_FORMAT_16);
+	if(err)
+		return err;
+
 	#define LCD_wr_reg(value) w8(value,flag_cmd)
 	#define LCD_wr_data8(value) w8(value,flag_data)
 
@@ -279,11 +287,11 @@ int lcd_init_normal(void)
     LCD_wr_reg(0xC7);    //VCM control2 
     LCD_wr_data8(0x86);  //--
 
-    LCD_wr_reg(0x36);    // Memory Access Control 
-    LCD_wr_data8(0xE8); //C8	   //48 68竖屏//28 E8 横屏
+    // LCD_wr_reg(0x36);    // Memory Access Control 
+    // LCD_wr_data8(0xE8); //C8	   //48 68竖屏//28 E8 横屏
 
-    LCD_wr_reg(0x3A);    
-    LCD_wr_data8(0x55); 
+    // LCD_wr_reg(0x3A);    
+    // LCD_wr_data8(0x55); 
 
     LCD_wr_reg(0xB1);    
     LCD_wr_data8(0x00);  
@@ -336,14 +344,6 @@ int lcd_init_normal(void)
 
     #undef LCD_wr_reg 
 	#undef LCD_wr_data8 
-
-	// err = lcd_memory_access_control(MEMORY_ACCESS_NORMAL);
-	// if(err)
-	// 	return err;
-
-	// err = lcd_pixel_format_set(PIXEL_FORMAT_16);
-	// if(err)
-	// 	return err;
 
 	err = lcd_sleep_out();
 	if(err)

@@ -29,7 +29,7 @@ extern int lcd_display_on(void);
 #define MEMORY_ACCESS_ML 		(1<<4)
 #define MEMORY_ACCESS_BGR		(1<<3)
 #define MEMORY_ACCESS_MH 		(1<<2)
-#define MEMORY_ACCESS_NORMAL	0
+#define MEMORY_ACCESS_NORMAL	(MEMORY_ACCESS_MY | MEMORY_ACCESS_MX | MEMORY_ACCESS_MV | MEMORY_ACCESS_ML | MEMORY_ACCESS_BGR)
 
 extern int lcd_memory_access_control(int mode);
 extern int lcd_memory_area_write(int x1, int y1, int x2, int y2, const unsigned char *buf, int size);
