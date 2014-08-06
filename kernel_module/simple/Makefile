@@ -9,7 +9,7 @@ else
 	KDIR := ~/project/git/rpi_linux
 
 all:
-	$(MAKE) -C $(KDIR) M=$(PWD) modules  ARCH=arm  CROSS_COMPILE=arm-linux-gnueabi-
+	$(MAKE) -C $(KDIR) M=$(PWD) modules  ARCH=arm  CROSS_COMPILE=arm-bcm2708-linux-gnueabi-
 clean:
 	rm -rf .*.cmd *.o *.mod.c *.ko .tmp_versions *.order *.symvers
 
