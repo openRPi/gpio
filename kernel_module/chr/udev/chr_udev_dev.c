@@ -50,6 +50,7 @@ static void __exit chr_udev_dev_exit(void)
 	cdev_del(&chr_dev);
 	unregister_chrdev_region(ndev,1);
 	device_destroy(chr_dev_class,ndev);
+	class_destroy(chr_dev_class);
 	printk(KERN_INFO "chr_udev_dev exit\n");
 }
 
