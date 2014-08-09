@@ -9,23 +9,9 @@
  * 设备目录 /dev/chr_misc_dev
  */
 
-static int chr_misc_dev_open(struct inode * ip, struct file * fp)
-{
-	printk(KERN_INFO "chr_misc_dev open\n");
-	return 0;
-}
-
-static int chr_misc_dev_release(struct inode * ip, struct file * fp)
-{
-	printk(KERN_INFO "chr_misc_dev release\n");
-	return 0;
-}
-
 struct file_operations chr_misc_dev_fops =
 {
 	.owner = THIS_MODULE,
-	.open = chr_misc_dev_open,
-	.release = chr_misc_dev_release,
 };
 
 static struct miscdevice chr_misc_dev =
