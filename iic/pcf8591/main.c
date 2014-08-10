@@ -2,11 +2,6 @@
 #include <signal.h>
 #include <stdio.h>
 
-#define CHANNEL_0 0x40
-#define CHANNEL_1 0x41
-#define CHANNEL_2 0x42
-#define CHANNEL_3 0x43
-
 int loop_run = 1;
 
 void loop_stop(int sig)

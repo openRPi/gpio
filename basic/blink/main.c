@@ -1,3 +1,14 @@
+/*
+ *	main.c 点亮一盏LED
+ *	
+ *	Copyright (C) 2014 concefly <h.wenjian@openrpi.org>
+ *	Copyright (C) 2014 openRPi
+ *	
+ *		代码遵循GNU协议
+ *	
+ *	文档：http://www.openrpi.org/blogs/?p=11
+ */
+
 #include <stdio.h>
 #include <signal.h>
 #include "bcm2835.h"
@@ -20,10 +31,11 @@ int main()
 		return 1;
 	}
 	
-	// Set the signal
-	signal(SIGINT,loop_stop); // Ctrl-C
+	/**
+	 * 设置SIGINT信号。CTRL-C 发出SIGINT信号。
+	 */
+	signal(SIGINT,loop_stop);
 	
-	// Set the GPIO function
 	bcm2835_gpio_fsel(BLINK_PIN, BCM2835_GPIO_FSEL_OUTP);
 	
 	printf("blinking at %fHz, press Ctrl-C to exit...\n",1000.0/DELAY_MS);
