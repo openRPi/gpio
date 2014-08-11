@@ -1,13 +1,24 @@
+/*
+ *	混杂字符设备驱动。
+ *	只完成加载和卸载的工作，自动归类到混杂设备。
+ *	
+ *	所有混杂设备的主设备号都为10
+ *	混杂类目录 /sys/class/misc
+ *	设备目录 /dev/chr_misc_dev
+ *	
+ *	Copyright (C) 2014 concefly <h.wenjian@openrpi.org>
+ *	Copyright (C) 2014 openRPi
+ *	
+ *		代码遵循GNU协议
+ *	
+ *	文档：
+ */
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/miscdevice.h>
 #include <linux/io.h>
-
-/* 所有混杂设备的主设备号都为10
- * 混杂类目录 /sys/class/misc
- * 设备目录 /dev/chr_misc_dev
- */
 
 struct file_operations chr_misc_dev_fops =
 {
