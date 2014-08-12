@@ -24,6 +24,8 @@ int main()
 		return 1;
 	}
 
+	ds1307_set_ch(DS1307_CH_ON);
+
 	printf("[S]how time, [E]dit Time, [Q]uit\n");
 	while(1)
 	{
@@ -35,7 +37,7 @@ int main()
 			year = ds1307_get_year();
 			month = ds1307_get_mon();
 			date = ds1307_get_date();
-			ds1307_get_hour_24(&hour);
+			hour = ds1307_get_hour();
 			minute = ds1307_get_min();
 			second = ds1307_get_sec();
 			day = ds1307_get_day();
@@ -55,7 +57,7 @@ int main()
 			ds1307_set_year(year);
 			ds1307_set_mon(month);
 			ds1307_set_date(date);
-			ds1307_set_hour_24(hour);
+			ds1307_set_hour(hour);
 			ds1307_set_min(minute);
 			ds1307_set_sec(second);
 			ds1307_set_day(day);

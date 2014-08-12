@@ -20,20 +20,6 @@
 #endif
 
 /**
- * 幂运算
- * @param  a 底数
- * @param  b 幂
- * @return   幂运算结果
- */
-int pow(int a,int b)
-{
-	int ret=1;
-	while(b--)
-		ret *= a;
-	return ret;
-}
-
-/**
  * DS1307初始化
  * @return  成功1，失败0
  */
@@ -92,31 +78,14 @@ void ds1307_write_byte(int addr, char dat)
 }
 
 /**
- * 截取一个字节指定bit段的值。如 byte_join(0xa0,7,4) 截取0xa0第7到第4位的值0xa，返回10.
- * @param  byt 要截取的字节
- * @param  a   最高位
- * @param  b   最低位
- * @return     截取的值
+ * 生成掩码
+ * @param  a 最高位
+ * @param  b 最低位
+ * @return   生成的掩码
  */
-int byte_join(char byt, int a,int b)
+unsigned char to_mask(int a,int b)
 {
-	unsigned char mask = 0;
-	byt >>= b;
-	mask = pow(2,a-b+1) - 1;
-	return (int)(byt&mask);
-}
-
-/**
- * 设置传入数据指定的位
- * @param  dat 传入的数据
- * @param  a   最高位
- * @param  b   最低位
- * @param  x   写入的数据
- * @return     设置好的数据
- */
-char bit_set(unsigned char dat,int a, int b, unsigned char x)
-{
-	unsigned char mask = 0;
+	unsigned char mask = 1;
 	int dt=a-b;
 	while(dt--)
 	{
@@ -124,9 +93,69 @@ char bit_set(unsigned char dat,int a, int b, unsigned char x)
 		mask += 1;
 	}
 	mask <<= b;
-	dat &= ~mask;
-	dat |= x<<b;
-	return dat;
+	return mask;
+}
+
+/**
+ * 设置一个字节指定bit段的值。
+ * @param  in  要设置的字节
+ * @param  a   最高位
+ * @param  b   最低位
+ * @param  dat 写入的数据
+ * @return     设置好的字节
+ */
+unsigned char set_bits(unsigned char in,int a,int b,unsigned char dat)
+{
+	unsigned char mask = to_mask(a,b);
+	in &= ~mask;
+	in |= dat<<b;
+	return in;
+}
+
+/**
+ * 截取一个字节指定bit段的值。如 get_bits(0xa0,7,4) 截取0xa0第7到第4位的值0xa，返回10.
+ * @param  in 要截取的字节
+ * @param  a  最高位
+ * @param  b  最低位
+ * @return    截取的值
+ */
+unsigned char get_bits(unsigned char in,int a,int b)
+{
+	unsigned char mask = to_mask(a,b);
+	return (in >> b) & (mask>>b);
+}
+
+/**
+ * 分解一个BCD码
+ * @param bcd BCD码
+ * @param a   十位的指针
+ * @param b   个位的指针
+ */
+void bcd_split(unsigned char bcd, int *a, int *b)
+{
+	*a = get_bits(bcd,7,4);
+	*b = get_bits(bcd,3,0);
+}
+
+/**
+ * 给定十位和个位生成BCD码
+ * @param  a 十位
+ * @param  b 个位
+ * @return   生成的BCD码
+ */
+unsigned char bcd_join(int a,int b)
+{
+	return set_bits(set_bits(0,7,4,a),3,0,b);
+}
+
+/**
+ * 给定数值生成BCD
+ * @param  x 给定的数值
+ * @return   BCD
+ */
+unsigned char to_bcd(unsigned char x)
+{
+	return bcd_join(x/10,x%10);
 }
 
 /**
@@ -136,7 +165,7 @@ char bit_set(unsigned char dat,int a, int b, unsigned char x)
 int ds1307_get_ch(void)
 {
 	char byte = ds1307_read_byte(0);
-	return byte_join(byte,7,7);
+	return get_bits(byte,7,7);
 }
 
 /**
@@ -146,7 +175,7 @@ int ds1307_get_ch(void)
 int ds1307_get_sec(void)
 {
 	char byte = ds1307_read_byte(0);
-	return byte_join(byte,6,4)*10 + byte_join(byte,3,0);
+	return get_bits(byte,6,4)*10 + get_bits(byte,3,0);
 }
 
 /**
@@ -156,43 +185,19 @@ int ds1307_get_sec(void)
 int ds1307_get_min(void)
 {
 	char byte = ds1307_read_byte(1);
-	return byte_join(byte,6,4)*10 + byte_join(byte,3,0);
+	return get_bits(byte,6,4)*10 + get_bits(byte,3,0);
 }
 
 /**
- * 读取小时模式
- * @return  小时模式，DS1307_HOUR_12 或 DS1307_HOUR_24
- */
-int ds1307_get_hour_mode(void)
-{
-	char byte = ds1307_read_byte(2);
-	return byte_join(byte,6,6);
-}
-
-/**
- * 以12小时模式读取小时
+ * 读取小时
  * @param hour 小时数指针[1...12]
  * @param ap   AM或PM指示指针。AM为DS1307_HOUR_AM，PM为DS1307_HOUR_PM
  * @return     小时数[1...12]
  */
-int ds1307_get_hour_12(int * hour, int * ap)
+int ds1307_get_hour(void)
 {
 	char byte = ds1307_read_byte(2);
-	*ap = byte_join(byte,5,5);
-	*hour = byte_join(byte,4,4)*10 + byte_join(byte,3,0);
-	return *hour;
-}
-
-/**
- * 以24小时模式读取小时
- * @param  hour 小时数指针[0...23]
- * @return      小时数[0...23]
- */
-int ds1307_get_hour_24(int * hour)
-{
-	char byte = ds1307_read_byte(2);
-	*hour = byte_join(byte,5,4)*10 + byte_join(byte,3,0);
-	return *hour;
+	return get_bits(byte,5,4)*10 + get_bits(byte,3,0);
 }
 
 /**
@@ -202,7 +207,7 @@ int ds1307_get_hour_24(int * hour)
 int ds1307_get_day(void)
 {
 	char byte = ds1307_read_byte(3);
-	return byte_join(byte,2,0);
+	return get_bits(byte,2,0);
 }
 
 /**
@@ -212,7 +217,7 @@ int ds1307_get_day(void)
 int ds1307_get_date(void)
 {
 	char byte = ds1307_read_byte(4);
-	return byte_join(byte,5,4)*10 + byte_join(byte,3,0);
+	return get_bits(byte,5,4)*10 + get_bits(byte,3,0);
 }
 
 /**
@@ -222,7 +227,7 @@ int ds1307_get_date(void)
 int ds1307_get_mon(void)
 {
 	char byte = ds1307_read_byte(5);
-	return byte_join(byte,4,4)*10 + byte_join(byte,3,0);
+	return get_bits(byte,4,4)*10 + get_bits(byte,3,0);
 }
 
 /**
@@ -232,7 +237,7 @@ int ds1307_get_mon(void)
 int ds1307_get_year(void)
 {
 	char byte = ds1307_read_byte(6);
-	return byte_join(byte,7,4)*10 + byte_join(byte,3,0);
+	return get_bits(byte,7,4)*10 + get_bits(byte,3,0);
 }
 
 /**
@@ -243,10 +248,7 @@ void ds1307_set_ch(int x)
 {
 	char last=0;
 	last = ds1307_read_byte(0);
-	if(x)
-		last |= 0x80;
-	else
-		last &= ~0x80;
+	last = set_bits(last,7,7,x?1:0);
 	ds1307_write_byte(0,last);
 }
 
@@ -258,9 +260,7 @@ void ds1307_set_sec(int sec)
 {
 	char last=0;
 	last = ds1307_read_byte(0);
-	last &= 0x80;
-	last += (unsigned char)sec;
-	ds1307_write_byte(0,last);
+	ds1307_write_byte(0,to_bcd(get_bits(last,6,0)));
 }
 
 /**
@@ -269,79 +269,34 @@ void ds1307_set_sec(int sec)
  */
 void ds1307_set_min(int min)
 {
-	unsigned char dat=0;
-	dat = bit_set(bit_set(dat,7,4,min/10),3,0,min%10);
-	ds1307_write_byte(1,dat);
+	ds1307_write_byte(1,to_bcd(min));
 }
 
 /**
- * 设置小时模式
- * @param x DS1307_HOUR_12或DS1307_HOUR_24
- */
-void ds1307_set_hour_mode(int x)
-{
-	char last=0;
-	last = ds1307_read_byte(2);
-	if(x)
-		last |= 0x40;
-	else
-		last &= ~0x40;
-	ds1307_write_byte(2,last);
-}
-
-/**
- * 以24小时模式设置小时
+ * 以24小时模式设置小时。BIT6=0时为24小时模式。
  * @param hour [0...23]
  */
-void ds1307_set_hour_24(int hour)
+void ds1307_set_hour(int hour)
 {
-	char last=0;
-	last = ds1307_read_byte(2);
-	last = 0;
-	last += (unsigned char)hour;
-	ds1307_write_byte(2,last);
-}
-
-/**
- * 以12小时模式设置小时
- * @param hour [1...12]
- * @param ap   DS1307_HOUR_AM 或 DS1307_HOUR_PM
- */
-void ds1307_set_hour_12(int hour,int ap)
-{
-	char last=0;
-	last = ds1307_read_byte(2);
-	last &= 0x40;
-	if(ap==DS1307_HOUR_PM)
-		hour += 12;
-	last += (unsigned char)hour;
-	ds1307_write_byte(2,last);
+	ds1307_write_byte(2,to_bcd(hour));
 }
 
 void ds1307_set_day(int day)
 {
-	unsigned char dat=0;
-	dat = bit_set(bit_set(dat,7,4,day/10),3,0,day%10);
-	ds1307_write_byte(3,dat);
+	ds1307_write_byte(3,to_bcd(day));
 }
 
 void ds1307_set_date(int date)
 {
-	unsigned char dat=0;
-	dat = bit_set(bit_set(dat,7,4,date/10),3,0,date%10);
-	ds1307_write_byte(4,dat);
+	ds1307_write_byte(4,to_bcd(date));
 }
 
 void ds1307_set_mon(int mon)
 {
-	unsigned char dat=0;
-	dat = bit_set(bit_set(dat,7,4,mon/10),3,0,mon%10);
-	ds1307_write_byte(5,dat);
+	ds1307_write_byte(5,to_bcd(mon));
 }
 
 void ds1307_set_year(int year)
 {
-	unsigned char dat=0;
-	dat = bit_set(bit_set(dat,7,4,year/10),3,0,year%10);
-	ds1307_write_byte(6,dat);
+	ds1307_write_byte(6,to_bcd(year));
 }
