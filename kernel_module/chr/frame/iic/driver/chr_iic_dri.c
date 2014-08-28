@@ -1,3 +1,15 @@
+/*
+ *	注册I2C设备驱动到内核
+ *	驱动名chr_iic_dri，匹配I2C设备chr_iic_dev
+ *	
+ *	Copyright (C) 2014 concefly <h.wenjian@openrpi.org>
+ *	Copyright (C) 2014 openRPi
+ *	
+ *		代码遵循GNU协议
+ *	
+ *	文档：http://www.openrpi.org/blogs/?p=281
+ */
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -13,6 +25,12 @@ static struct i2c_device_id chr_iic_dri_idtable[] = {
 
 MODULE_DEVICE_TABLE(i2c,chr_iic_dri_idtable);
 
+/**
+ * 设备名匹配时的回调函数
+ * @param  client   设备client结构体指针
+ * @param  id_table 设备id_table指针
+ * @return          0或错误号
+ */
 int chr_iic_dri_probe(struct i2c_client * client, const struct i2c_device_id * id_table)
 {
 	printk(KERN_INFO "++ chr_iic_dri_probe ++\n");
