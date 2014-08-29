@@ -1,5 +1,6 @@
 /*
- *	interrupt button
+ *	GPIO中断测试
+ *	注册按键到中断服务函数，并打印中断信息
  *	
  *	
  *	Copyright (C) 2014 concefly <h.wenjian@openrpi.org>
@@ -7,7 +8,7 @@
  *	
  *		代码遵循GNU协议
  *	
- *	文档：
+ *	文档：http://www.openrpi.org/blogs/?p=296
  */
 
 #include <linux/module.h>
@@ -21,6 +22,10 @@
 
 #define debug 1
 
+/**
+ * 描述按键的结构体
+ * 调用 init_btn_irq 填充 .irq成员
+ */
 struct btn_t
 {
 	int gpio_num;
@@ -29,7 +34,7 @@ struct btn_t
 };
 
 static struct btn_t btn_list[] = {
-	{4,0,"P1-7"},
+	{4 ,0,"P1-7"},
 	{17,0,"P1-11"},
 	{18,0,"P1-12"},
 	{27,0,"P1-13"},
@@ -39,6 +44,11 @@ static struct btn_t btn_list[] = {
 	{25,0,"P1-22"},
 };
 
+/**
+ * 打印按键信息
+ * @param btn   头指针
+ * @param count 要打印的个数
+ */
 void print_btn_info(const struct btn_t * btn, int count)
 {
 	int i=0;
@@ -54,6 +64,12 @@ void print_btn_info(const struct btn_t * btn, int count)
 	printk(KERN_INFO "@- \n");
 }
 
+/**
+ * 按键中断服务函数
+ * @param  irq 中断号
+ * @param  dev 按键描述结构体指针
+ * @return     处理状态，定义在 #include <linux/interrupt.h>
+ */
 static irqreturn_t btn_interrput(int irq, void *dev)
 {
 	struct btn_t * btn = (struct btn_t *)dev;
@@ -64,6 +80,12 @@ static irqreturn_t btn_interrput(int irq, void *dev)
 	return IRQ_HANDLED;
 }
 
+/**
+ * 填充中断号
+ * @param  btn   头指针
+ * @param  count 个数
+ * @return       0或错误号
+ */
 int init_btn_irq(struct btn_t * btn, int count)
 {
 	int i=0, err;
@@ -82,6 +104,12 @@ int init_btn_irq(struct btn_t * btn, int count)
 	return 0;
 }
 
+/**
+ * 根据按键描述结构体申请中断服务
+ * @param  btn   头指针
+ * @param  count 个数
+ * @return       0或错误号
+ */
 int request_btn_irq(struct btn_t * btn, int count)
 {
 	int i=0, err;
@@ -90,8 +118,10 @@ int request_btn_irq(struct btn_t * btn, int count)
 	{
 		if(request_irq(	btn->irq,
 						btn_interrput,
+						// 上升沿触发
 						IRQF_TRIGGER_RISING,
 						btn->name,
+						// 按键描述结构体指针。会传入给中断服务程序。
 						btn))
 		{
 			#if debug
@@ -104,11 +134,17 @@ int request_btn_irq(struct btn_t * btn, int count)
 	return 0;
 
 err_free:
+	// 出错，则释放申请成功的中断号
 	while(i--)
 		free_irq(btn->irq,btn);
 	return err;
 }
 
+/**
+ * 根据按键描述结构体释放中断号
+ * @param btn   头指针
+ * @param count 个数
+ */
 void free_btn_irq(struct btn_t * btn, int count)
 {
 	int i;
@@ -122,6 +158,7 @@ static int __init chr_btn_dev_init(void)
 
 	printk(KERN_INFO "++ chr_btn_dev init ++\n");
 
+	// 填充中断号
 	err = init_btn_irq(btn_list,ARRAY_SIZE(btn_list));
 	if(err<0)
 	{
