@@ -19,34 +19,120 @@
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 
-static int btn_list[] = {4,17,18,27,22,23,24,25};
+#define debug 1
+
+struct btn_t
+{
+	int gpio_num;
+	int irq;
+	char *name;
+};
+
+static struct btn_t btn_list[] = {
+	{4,0,"P1-7"},
+	{17,0,"P1-11"},
+	{18,0,"P1-12"},
+	{27,0,"P1-13"},
+	{22,0,"P1-15"},
+	{23,0,"P1-16"},
+	{24,0,"P1-18"},
+	{25,0,"P1-22"},
+};
+
+void print_btn_info(const struct btn_t * btn, int count)
+{
+	int i=0;
+	printk(KERN_INFO "@+ \n");
+
+	for(i=0;i<count;i++,btn++)
+	{
+		printk(KERN_INFO "@ %d, %d, %s\n",
+			btn->gpio_num,
+			btn->irq,
+			btn->name);
+	}
+	printk(KERN_INFO "@- \n");
+}
 
 static irqreturn_t btn_interrput(int irq, void *dev)
 {
-	printk(KERN_INFO "++ btn_interrput ++\n");
-	printk(KERN_INFO "IRQ=%d, GPIO_NUM=%d\n",irq, irq_to_gpio(irq));
+	struct btn_t * btn = (struct btn_t *)dev;
+
+	printk(KERN_INFO "++ btn_interrput %d ++\n",irq);
+	print_btn_info(btn,1);
 	printk(KERN_INFO "-- btn_interrput --\n");
 	return IRQ_HANDLED;
 }
 
-static int __init chr_btn_dev_init(void)
+int init_btn_irq(struct btn_t * btn, int count)
 {
-	printk(KERN_INFO "++ chr_btn_dev init ++\n");
-
-	for(int i=0;i<ARRAY_SIZE(btn_list);i++)
+	int i=0, err;
+	for(i=0;i<count;i++,btn++)
 	{
-		int btn_irq = gpio_to_irq(btn_list[i]);
-		if(request_irq(	btn_irq,
+		err = gpio_to_irq(btn->gpio_num);
+		if(err<0)
+		{
+			#if debug
+			print_btn_info(btn,1);
+			#endif
+			return err;
+		}
+		btn->irq = err;
+	}
+	return 0;
+}
+
+int request_btn_irq(struct btn_t * btn, int count)
+{
+	int i=0, err;
+
+	for(i=0;i<count;i++,btn++)
+	{
+		if(request_irq(	btn->irq,
 						btn_interrput,
 						IRQF_TRIGGER_RISING,
-						"chr_btn_dev",
-						NULL))
+						btn->name,
+						btn))
 		{
-			printk(KERN_ERR "Can't register IRQ %d\n",btn_irq);
-			return -EIO;
+			#if debug
+			print_btn_info(btn,1);
+			#endif
+			err = -EIO;
+			goto err_free;
 		}
-		else
-			printk(KERN_ERR "Register IRQ %d\n",btn_irq);
+	}
+	return 0;
+
+err_free:
+	while(i--)
+		free_irq(btn->irq,btn);
+	return err;
+}
+
+void free_btn_irq(struct btn_t * btn, int count)
+{
+	int i;
+	for(i=0;i<count;i++,btn++)
+		free_irq(btn->irq,btn);
+}
+
+static int __init chr_btn_dev_init(void)
+{
+	int err;
+
+	printk(KERN_INFO "++ chr_btn_dev init ++\n");
+
+	err = init_btn_irq(btn_list,ARRAY_SIZE(btn_list));
+	if(err<0)
+	{
+		printk(KERN_ERR "Init IQR ERR\n");
+		return err;
+	}
+
+	if((err=request_btn_irq(btn_list,ARRAY_SIZE(btn_list)))<0)
+	{
+		printk(KERN_ERR "Regsiter IQR ERR\n");
+		return err;
 	}
 
 	printk(KERN_INFO "-- chr_btn_dev init --\n");
@@ -55,16 +141,10 @@ static int __init chr_btn_dev_init(void)
 
 static void __exit chr_btn_dev_exit(void)
 {
-	int btn_irq;
-
 	printk(KERN_INFO "++ chr_btn_dev exit ++\n");
 
-	for(int i=0;i<ARRAY_SIZE(btn_list);i++)
-	{
-		int btn_irq = gpio_to_irq(btn_list[i]);
-		free_irq(btn_irq,NULL);
-		printk(KERN_INFO "release IRQ %d\n",btn_irq);
-	}
+	free_btn_irq(btn_list,ARRAY_SIZE(btn_list));
+	printk(KERN_INFO "Release IRQ \n");
 
 	printk(KERN_INFO "-- chr_btn_dev exit --\n");
 }
