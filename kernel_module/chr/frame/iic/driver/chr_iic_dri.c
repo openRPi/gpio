@@ -18,8 +18,8 @@
 #include <linux/errno.h>
 #include <linux/i2c.h>
 
-#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++", __FILE__, __func__, __LINE__)
-#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --", __FILE__, __func__, __LINE__)
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
 
 static struct i2c_device_id chr_iic_dri_idtable[] = {
 	{ "chr_iic_dev", 0 },
