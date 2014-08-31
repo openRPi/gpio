@@ -18,6 +18,9 @@
 #include <linux/errno.h>
 #include <linux/i2c.h>
 
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --", __FILE__, __func__, __LINE__)
+
 static struct i2c_device_id chr_iic_dri_idtable[] = {
 	{ "chr_iic_dev", 0 },
 	{ }
@@ -33,23 +36,23 @@ MODULE_DEVICE_TABLE(i2c,chr_iic_dri_idtable);
  */
 int chr_iic_dri_probe(struct i2c_client * client, const struct i2c_device_id * id_table)
 {
-	printk(KERN_INFO "++ chr_iic_dri_probe ++\n");
+	func_in();
 
 	printk(KERN_INFO "probe device. name=%s, addr=%x, id=%d\n",client->name, client->addr,(int)id_table->driver_data);
 	i2c_smbus_write_byte(client,0xab);
 	printk(KERN_INFO "write 0xab\n");
 
-	printk(KERN_INFO "-- chr_iic_dri_probe --\n");
+	func_out();
 	return 0;
 }
 
 int chr_iic_dri_remove(struct i2c_client * client)
 {
-	printk(KERN_INFO "++ chr_iic_dri_remove ++\n");
+	func_in();
 
 	printk(KERN_INFO "remove device. name=%s, addr=%x \n",client->name, client->addr);
 
-	printk(KERN_INFO "-- chr_iic_dri_remove --\n");
+	func_out();
 	return 0;
 }
 
@@ -61,29 +64,22 @@ static struct i2c_driver chr_iic_dri_driver = {
 	.id_table	= chr_iic_dri_idtable,
 	.probe		= chr_iic_dri_probe,
 	.remove		= chr_iic_dri_remove,
-	/* if device autodetection is needed: */
-	// .class		= I2C_CLASS_SOMETHING,
-	// .detect		= chr_iic_dri_detect,
-	// .address_list	= normal_i2c,
-
-	// .shutdown	= chr_iic_dri_shutdown,	/* optional */
-	// .suspend	= chr_iic_dri_suspend,	/* optional */
-	// .resume		= chr_iic_dri_resume,	/* optional */
-	// .command	= chr_iic_dri_command,	/* optional, deprecated */
 };
 
 static int __init chr_iic_dri_init(void)
 {
-	printk(KERN_INFO "++ chr_iic_dri_init ++\n");
-	printk(KERN_INFO "-- chr_iic_dri_init --\n");
-	return i2c_add_driver(&chr_iic_dri_driver);
+	int err;
+	func_in();
+	err = i2c_add_driver(&chr_iic_dri_driver);
+	func_out();
+	return err;
 }
 
 static void __exit chr_iic_dri_exit(void)
 {
-	printk(KERN_INFO "++ chr_iic_dri_exit ++\n");
+	func_in();
 	i2c_del_driver(&chr_iic_dri_driver);
-	printk(KERN_INFO "-- chr_iic_dri_exit --\n");
+	func_out();
 }
 
 module_init(chr_iic_dri_init);
