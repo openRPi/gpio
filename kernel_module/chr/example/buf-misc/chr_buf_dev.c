@@ -122,6 +122,10 @@ static loff_t chr_buf_dev_llseek(struct file * filp, loff_t off, int where)
 	if (newpos < 0 || newpos > BUF_SIZE-1)
 		return -EINVAL;
 
+	printk(KERN_INFO "lastpos=%d\n",(int)(filp->f_pos));
+	printk(KERN_INFO "off=%d\n",(int)off);
+	printk(KERN_INFO "newpos=%d\n",(int)newpos);
+
 	// 修改 filp 的位置指针成员
 	filp->f_pos = newpos;
 
