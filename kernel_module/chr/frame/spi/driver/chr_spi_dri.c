@@ -7,7 +7,7 @@
  *	
  *		代码遵循GNU协议
  *	
- *	文档：http://www.openrpi.org/blogs/?p=281
+ *	文档：http://www.openrpi.org/blogs/?p=305
  */
 
 #include <linux/module.h>
@@ -17,6 +17,9 @@
 #include <linux/io.h>
 #include <linux/errno.h>
 #include <linux/spi/spi.h>
+
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --", __FILE__, __func__, __LINE__)
 
 static struct spi_device_id chr_spi_dri_idtable[] = {
 	{ "chr_spi_dev", 0 },
@@ -28,32 +31,32 @@ MODULE_DEVICE_TABLE(spi,chr_spi_dri_idtable);
 /**
  * 设备名匹配时的回调函数
  * @param  spi      设备spi结构体指针
- * @param  id_table 设备id_table指针
  * @return          0或错误号
  */
 int chr_spi_dri_probe(struct spi_device *spi)
 {
-	printk(KERN_INFO "++ chr_spi_dri_probe ++\n");
+	func_in();
 
 	printk(KERN_INFO "probe device. name=%s\n",spi->modalias);
 
-	printk(KERN_INFO "-- chr_spi_dri_probe --\n");
+	func_out();
 	return 0;
 }
 
 int chr_spi_dri_remove(struct spi_device *spi)
 {
-	printk(KERN_INFO "++ chr_spi_dri_remove ++\n");
+	func_in();
 
 	printk(KERN_INFO "remove device. name=%s\n",spi->modalias);
 
-	printk(KERN_INFO "-- chr_spi_dri_remove --\n");
+	func_out();
 	return 0;
 }
 
 static struct spi_driver chr_spi_dri_driver = {
 	.driver = {
 		.name	= "chr_spi_dri",
+		.owner = THIS_MODULE,
 	},
 
 	.id_table	= chr_spi_dri_idtable,
@@ -64,17 +67,17 @@ static struct spi_driver chr_spi_dri_driver = {
 static int __init chr_spi_dri_init(void)
 {
 	int re;
-	printk(KERN_INFO "++ chr_spi_dri_init ++\n");
+	func_in();
 	re = spi_register_driver(&chr_spi_dri_driver);
-	printk(KERN_INFO "-- chr_spi_dri_init --\n");
+	func_out();
 	return re;
 }
 
 static void __exit chr_spi_dri_exit(void)
 {
-	printk(KERN_INFO "++ chr_spi_dri_exit ++\n");
+	func_in();
 	spi_unregister_driver(&chr_spi_dri_driver);
-	printk(KERN_INFO "-- chr_spi_dri_exit --\n");
+	func_out();
 }
 
 module_init(chr_spi_dri_init);
