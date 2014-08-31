@@ -55,7 +55,7 @@ static ssize_t chr_buf_dev_read(struct file * filp, char __user * up, size_t siz
 	int min=0;
 
 	func_in();
-	printk(KERN_INFO "@size=%d\n@off=%d\n",size,*off);
+	printk(KERN_INFO "@size=%d\n@off=%d\n",size,(int)*off);
 	
 	buf_array = filp->private_data;
 	// 确定实际读取的字节数。
@@ -79,7 +79,7 @@ static ssize_t chr_buf_dev_write(struct file * filp, const char __user * up, siz
 	int min=0;
 	
 	func_in();
-	printk(KERN_INFO "@size=%d\n@off=%d\n",size,*off);
+	printk(KERN_INFO "@size=%d\n@off=%d\n",size,(int)*off);
 
 	buf_array = filp->private_data;
 	// 确定实际写入的字节数。
