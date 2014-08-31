@@ -23,8 +23,8 @@
 
 #define BUF_SIZE 50
 
-#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++", __FILE__, __func__, __LINE__)
-#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --", __FILE__, __func__, __LINE__)
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
 
 static int chr_buf_dev_open(struct inode * inode, struct file * filp)
 {

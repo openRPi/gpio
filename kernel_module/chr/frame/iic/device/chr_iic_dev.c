@@ -24,8 +24,8 @@
  */
 #define BUS_NUM 2
 
-#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++", __FILE__, __func__, __LINE__)
-#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --", __FILE__, __func__, __LINE__)
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
 
 struct i2c_adapter * adap=NULL;
 struct i2c_client * client=NULL;

@@ -18,8 +18,8 @@
 #include <linux/errno.h>
 #include <linux/spi/spi.h>
 
-#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++", __FILE__, __func__, __LINE__)
-#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --", __FILE__, __func__, __LINE__)
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
 
 static struct spi_device_id chr_spi_dri_idtable[] = {
 	{ "chr_spi_dev", 0 },
