@@ -17,6 +17,7 @@
 #include <linux/spi/spi.h>
 #include <linux/fb.h>
 #include <linux/platform_device.h>
+#include <linux/string.h>
 
 #include "ops.h"
 
@@ -28,6 +29,59 @@ static struct platform_device spi_qtft_device =
 	.name = "spi_qtft",
 	.id   = 0,
 };
+
+static int fill_fix_info(struct fb_fix_screeninfo *fix)
+{
+	func_in();
+
+	strncpy(fix->id,"qtft_fixinfo",16);
+	// Packed Pixels
+	fix->type = FB_TYPE_PACKED_PIXELS;
+	// True color
+	fix->visual      = FB_VISUAL_TRUECOLOR;
+	fix->type_aux    = 0;
+	fix->xpanstep    = 0;
+	fix->ypanstep    = 0;
+	fix->ywrapstep   = 0;
+	fix->line_length = 16*320;
+	// no hardware accelerator
+	fix->accel       = FB_ACCEL_NONE;
+	// How can we deal with it?
+	// fix->smem_start  = 0;
+	// fix->smem_len    = 0;
+	// fix->mmio_start  = 0;
+	// fix->mmio_len    = 0;
+
+	func_out();
+	return 0;
+}
+
+static int fill_var_info(struct fb_var_screeninfo *var)
+{
+	func_in();
+
+	var->xres           = 320;
+	var->yres           = 240;
+	var->xres_virtual   = 320;
+	var->yres_virtual   = 240;
+	var->xoffset        = 0;
+	var->yoffset        = 0;
+	var->bits_per_pixel = 16;
+	var->grayscale      = 0;
+	var->red.length     = 5;
+	var->red.offset     = 11;
+	var->green.length   = 6;
+	var->green.offset   = 5;
+	var->blue.length    = 5;
+	var->blue.offset    = 0;
+	var->transp.length  = 0;
+	var->transp.offset  = 0;
+	var->nonstd         = 0;
+	var->activate       = FB_ACTIVATE_NOW;
+
+	func_out();
+	return 0;
+}
 
 static int spi_qtft_probe(struct platform_device * pdev)
 {
@@ -45,6 +99,10 @@ static int spi_qtft_probe(struct platform_device * pdev)
 	// spi_qtft_ops 定义在 ops.c
 	info->fbops = &spi_qtft_ops;
 	fb_alloc_cmap(&info->cmap,16,0);
+
+	// 填充screeninfo
+	fill_var_info(&info->var);
+	fill_fix_info(&info->fix);
 
 	err = register_framebuffer(info);
 	if(err<0)
