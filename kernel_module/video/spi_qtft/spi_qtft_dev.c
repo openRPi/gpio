@@ -66,16 +66,30 @@ out:
 static int spi_qtft_remove(struct platform_device *pdev)
 {
 	struct fb_info *info;
+	int err=0;
 	func_in();
 
 	info = platform_get_drvdata(pdev);
+	if(!info)
+	{
+		dev_err(&pdev->dev,"platform_get_drvdata retutn NULL\n");
+		err = -ENODEV;
+		goto out;
+	}
 	unregister_framebuffer(info);
 	framebuffer_release(info);
 	platform_set_drvdata(pdev,NULL);
 
+out:
 	func_out();
 	return 0;
 }
+
+struct platform_device_id spi_qtft_idtable[] = 
+{
+	{"spi_qtft", 0},
+	{ },
+};
 
 static struct platform_driver spi_qtft_driver = 
 {
@@ -85,6 +99,7 @@ static struct platform_driver spi_qtft_driver =
 	},
 	.probe = spi_qtft_probe,
 	.remove = spi_qtft_remove,
+	.id_table = spi_qtft_idtable,
 };
 
 static int  __init spi_qtft_init(void)
