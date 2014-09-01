@@ -3,6 +3,7 @@
 ifneq ($(KERNELRELEASE),)
 	# kbuild syntax. dependency relationshsip of files and target modules are listed here.
 	obj-m := spi_qtft_dev.o
+	obj-m := ops.o
 else
 	PWD  := $(shell pwd)
 	KDIR := ~/project/git/rpi_linux

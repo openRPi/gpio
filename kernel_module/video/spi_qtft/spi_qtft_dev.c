@@ -18,46 +18,44 @@
 #include <linux/fb.h>
 #include <linux/platform_device.h>
 
+#include "ops.h"
+
 #define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
 #define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
 
 static struct platform_device spi_qtft_device = 
 {
 	.name = "spi_qtft",
-	.id   = -1,
+	.id   = 0,
 };
 
-static struct fb_ops spi_qtft_ops = 
-{
-	.owner = THIS_MODULE,
-};
-
-static int __init spi_qtft_probe(struct platform_device * pdev)
+static int spi_qtft_probe(struct platform_device * pdev)
 {
 	struct fb_info *info;
 	int err=0;
 	func_in();
 
-// 	info = framebuffer_alloc(0, &pdev->dev);
-// 	if(!info)
-// 	{
-// 		dev_err(&pdev->dev,"Failed to alloc framebuffer\n");
-// 		err = -EBUSY;
-// 		goto out;
-// 	}
-// 	info->fbops = &spi_qtft_ops;
+	info = framebuffer_alloc(0, &pdev->dev);
+	if(!info)
+	{
+		dev_err(&pdev->dev,"Failed to alloc framebuffer\n");
+		err = -EBUSY;
+		goto out;
+	}
+	// spi_qtft_ops 定义在 ops.c
+	info->fbops = &spi_qtft_ops;
 	
-// 	err = register_framebuffer(info);
-// 	if(err<0)
-// 	{
-// 		dev_err(&pdev->dev,"Failed to register framebuffer\n");
-// 		goto free_framebuffer_alloc;
-// 	}
+	err = register_framebuffer(info);
+	if(err<0)
+	{
+		dev_err(&pdev->dev,"Failed to register framebuffer\n");
+		goto free_framebuffer_alloc;
+	}
 
-// 	platform_set_drvdata(pdev,info);
+	platform_set_drvdata(pdev,info);
 
-// free_framebuffer_alloc:
-// 	framebuffer_release(info);
+free_framebuffer_alloc:
+	framebuffer_release(info);
 out:
 	func_out();
 	return err;
@@ -82,7 +80,7 @@ static int spi_qtft_remove(struct platform_device *pdev)
 
 out:
 	func_out();
-	return 0;
+	return err;
 }
 
 struct platform_device_id spi_qtft_idtable[] = 
@@ -97,8 +95,8 @@ static struct platform_driver spi_qtft_driver =
 	{
 		.name = "spi_qtft_driver",
 	},
-	.probe = spi_qtft_probe,
-	.remove = spi_qtft_remove,
+	.probe    = spi_qtft_probe,
+	.remove   = spi_qtft_remove,
 	.id_table = spi_qtft_idtable,
 };
 
@@ -130,8 +128,8 @@ static void __exit spi_qtft_exit(void)
 {
 	func_in();
 
-	platform_driver_unregister(&spi_qtft_driver);
 	platform_device_unregister(&spi_qtft_device);
+	platform_driver_unregister(&spi_qtft_driver);
 
 	func_out();
 }
