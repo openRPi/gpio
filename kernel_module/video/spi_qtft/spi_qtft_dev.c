@@ -44,7 +44,8 @@ static int spi_qtft_probe(struct platform_device * pdev)
 	}
 	// spi_qtft_ops 定义在 ops.c
 	info->fbops = &spi_qtft_ops;
-	
+	fb_alloc_cmap(&info->cmap,16,0);
+
 	err = register_framebuffer(info);
 	if(err<0)
 	{
@@ -75,7 +76,11 @@ static int spi_qtft_remove(struct platform_device *pdev)
 		goto out;
 	}
 	unregister_framebuffer(info);
+
+	fb_dealloc_cmap(&info->cmap);
+	kfree(info->pseudo_palette);
 	framebuffer_release(info);
+	
 	platform_set_drvdata(pdev,NULL);
 
 out:
