@@ -22,8 +22,8 @@
 #define BUS_NUM 		99
 #define NUM_CHIPSELECT	3
 
-#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++", __FILE__, __func__, __LINE__)
-#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --", __FILE__, __func__, __LINE__)
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
 
 static void print_spi_device(struct spi_device * spi)
 {
