@@ -10,140 +10,147 @@
 
 #include <linux/module.h>
 #include <linux/kernel.h>
-#include <linux/fs.h>
-#include <linux/miscdevice.h>
-#include <linux/io.h>
 #include <linux/errno.h>
-#include <linux/spi/spi.h>
-#include <linux/fb.h>
-#include <linux/platform_device.h>
 #include <linux/string.h>
+#include <linux/mm.h>
+#include <linux/vmalloc.h>
+#include <linux/delay.h>
+#include <linux/interrupt.h>
+#include <linux/platform_device.h>
+
+#include <linux/fb.h>
+#include <linux/init.h>
 
 #include "ops.h"
+
+
+#define VIDEOMEMSIZE	(320*240*16) 
 
 #define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
 #define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
 
-static struct platform_device spi_qtft_device = 
+static void *videomemory;
+static u_long videomemorysize = VIDEOMEMSIZE;
+
+static struct platform_device *spi_qtft_device;
+
+extern struct fb_var_screeninfo spi_qtft_var_default;
+extern struct fb_fix_screeninfo spi_qtft_fix_default;
+
+static void *rvmalloc(unsigned long size)
 {
-	.name = "spi_qtft",
-	.id   = 0,
-};
+	void *mem;
+	unsigned long adr;
 
-static int fill_fix_info(struct fb_fix_screeninfo *fix)
-{
-	func_in();
+	size = PAGE_ALIGN(size);
+	mem = vmalloc_32(size);
+	if (!mem)
+		return NULL;
 
-	strncpy(fix->id,"qtft_fixinfo",16);
-	// Packed Pixels
-	fix->type = FB_TYPE_PACKED_PIXELS;
-	// True color
-	fix->visual      = FB_VISUAL_TRUECOLOR;
-	fix->type_aux    = 0;
-	fix->xpanstep    = 0;
-	fix->ypanstep    = 0;
-	fix->ywrapstep   = 0;
-	fix->line_length = 16*320;
-	// no hardware accelerator
-	fix->accel       = FB_ACCEL_NONE;
-	// How can we deal with it?
-	// fix->smem_start  = 0;
-	// fix->smem_len    = 0;
-	// fix->mmio_start  = 0;
-	// fix->mmio_len    = 0;
+	memset(mem, 0, size); /* Clear the ram out, no junk to the user */
+	adr = (unsigned long) mem;
+	while (size > 0) {
+		SetPageReserved(vmalloc_to_page((void *)adr));
+		adr += PAGE_SIZE;
+		size -= PAGE_SIZE;
+	}
 
-	func_out();
-	return 0;
+	return mem;
 }
 
-static int fill_var_info(struct fb_var_screeninfo *var)
+static void rvfree(void *mem, unsigned long size)
 {
-	func_in();
+	unsigned long adr;
 
-	var->xres           = 320;
-	var->yres           = 240;
-	var->xres_virtual   = 320;
-	var->yres_virtual   = 240;
-	var->xoffset        = 0;
-	var->yoffset        = 0;
-	var->bits_per_pixel = 16;
-	var->grayscale      = 0;
-	var->red.length     = 5;
-	var->red.offset     = 11;
-	var->green.length   = 6;
-	var->green.offset   = 5;
-	var->blue.length    = 5;
-	var->blue.offset    = 0;
-	var->transp.length  = 0;
-	var->transp.offset  = 0;
-	var->nonstd         = 0;
-	var->activate       = FB_ACTIVATE_NOW;
+	if (!mem)
+		return;
 
-	func_out();
-	return 0;
+	adr = (unsigned long) mem;
+	while ((long) size > 0) {
+		ClearPageReserved(vmalloc_to_page((void *)adr));
+		adr += PAGE_SIZE;
+		size -= PAGE_SIZE;
+	}
+	vfree(mem);
 }
 
-static int spi_qtft_probe(struct platform_device * pdev)
+static int spi_qtft_probe(struct platform_device * dev)
 {
 	struct fb_info *info;
-	int err=0;
+	int retval = -ENOMEM;
+
 	func_in();
 
-	info = framebuffer_alloc(0, &pdev->dev);
-	if(!info)
-	{
-		dev_err(&pdev->dev,"Failed to alloc framebuffer\n");
-		err = -EBUSY;
-		goto out;
-	}
-	// spi_qtft_ops 定义在 ops.c
+	/*
+	 * For real video cards we use ioremap.
+	 */
+	if (!(videomemory = rvmalloc(videomemorysize)))
+		return retval;
+
+	/*
+	 * VFB must clear memory to prevent kernel info
+	 * leakage into userspace
+	 * VGA-based drivers MUST NOT clear memory if
+	 * they want to be able to take over vgacon
+	 */
+	memset(videomemory, 0, videomemorysize);
+
+	info = framebuffer_alloc(sizeof(u32) * 256, &dev->dev);
+	if (!info)
+		goto err;
+
+	info->screen_base = (char __iomem *)videomemory;
+	// spi_qtft_ops 在 ops.c 中定义
 	info->fbops = &spi_qtft_ops;
-	fb_alloc_cmap(&info->cmap,16,0);
 
-	// 填充screeninfo
-	fill_var_info(&info->var);
-	fill_fix_info(&info->fix);
+	retval = fb_find_mode(&info->var, info, NULL,
+			      NULL, 0, NULL, 8);
 
-	err = register_framebuffer(info);
-	if(err<0)
-	{
-		dev_err(&pdev->dev,"Failed to register framebuffer\n");
-		goto free_framebuffer_alloc;
-	}
+	if (!retval || (retval == 4))
+		info->var = spi_qtft_var_default;
+	spi_qtft_fix_default.smem_start = (unsigned long) videomemory;
+	spi_qtft_fix_default.smem_len = videomemorysize;
+	info->fix = spi_qtft_fix_default;
+	info->pseudo_palette = info->par;
+	info->par = NULL;
+	info->flags = FBINFO_FLAG_DEFAULT;
 
-	platform_set_drvdata(pdev,info);
+	retval = fb_alloc_cmap(&info->cmap, 256, 0);
+	if (retval < 0)
+		goto err1;
 
-free_framebuffer_alloc:
+	retval = register_framebuffer(info);
+	if (retval < 0)
+		goto err2;
+	platform_set_drvdata(dev, info);
+
+	printk(KERN_INFO
+	       "fb%d: Virtual frame buffer device, using %ldK of video memory\n",
+	       info->node, videomemorysize >> 10);
+	return 0;
+err2:
+	fb_dealloc_cmap(&info->cmap);
+err1:
 	framebuffer_release(info);
-out:
+err:
+	rvfree(videomemory, videomemorysize);
 	func_out();
-	return err;
+	return retval;
 }
 
-static int spi_qtft_remove(struct platform_device *pdev)
+static int spi_qtft_remove(struct platform_device *dev)
 {
-	struct fb_info *info;
-	int err=0;
+	struct fb_info *info = platform_get_drvdata(dev);
+
 	func_in();
-
-	info = platform_get_drvdata(pdev);
-	if(!info)
-	{
-		dev_err(&pdev->dev,"platform_get_drvdata retutn NULL\n");
-		err = -ENODEV;
-		goto out;
+	if (info) {
+		unregister_framebuffer(info);
+		rvfree(videomemory, videomemorysize);
+		fb_dealloc_cmap(&info->cmap);
+		framebuffer_release(info);
 	}
-	unregister_framebuffer(info);
-
-	fb_dealloc_cmap(&info->cmap);
-	kfree(info->pseudo_palette);
-	framebuffer_release(info);
-	
-	platform_set_drvdata(pdev,NULL);
-
-out:
 	func_out();
-	return err;
+	return 0;
 }
 
 struct platform_device_id spi_qtft_idtable[] = 
@@ -165,33 +172,34 @@ static struct platform_driver spi_qtft_driver =
 
 static int  __init spi_qtft_init(void)
 {
-	int err;
+	int ret = 0;
+
 	func_in();
 
-	err = platform_device_register(&spi_qtft_device);
-	if(err<0)
-	{
-		printk(KERN_ERR "Failed to add platform device\n");
-		goto out;
-	}
+	ret = platform_driver_register(&spi_qtft_driver);
 
-	err = platform_driver_register(&spi_qtft_driver);
-	if(err<0)
-	{
-		printk(KERN_ERR "Failed to register platform driver\n");
-		goto out;
-	}
+	if (!ret) {
+		spi_qtft_device = platform_device_alloc("spi_qtft", 0);
 
-out:
+		if (spi_qtft_device)
+			ret = platform_device_add(spi_qtft_device);
+		else
+			ret = -ENOMEM;
+
+		if (ret) {
+			platform_device_put(spi_qtft_device);
+			platform_driver_unregister(&spi_qtft_driver);
+		}
+	}
 	func_out();
-	return err;
+	return ret;
 }
 
 static void __exit spi_qtft_exit(void)
 {
 	func_in();
 
-	platform_device_unregister(&spi_qtft_device);
+	platform_device_unregister(spi_qtft_device);
 	platform_driver_unregister(&spi_qtft_driver);
 
 	func_out();
@@ -202,4 +210,4 @@ module_exit(spi_qtft_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("h.wenjian@openrpi.org");
-MODULE_DESCRIPTION("spi QVGA TFT driver");
+MODULE_DESCRIPTION("SPI QVGA TFT LCD driver");
