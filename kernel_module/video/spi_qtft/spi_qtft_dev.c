@@ -81,9 +81,7 @@ static int spi_qtft_probe(struct platform_device * dev)
 
 	func_in();
 
-	/*
-	 * For real video cards we use ioremap.
-	 */
+	// 分配显存
 	if (!(videomemory = rvmalloc(videomemorysize)))
 		return retval;
 
@@ -95,45 +93,52 @@ static int spi_qtft_probe(struct platform_device * dev)
 	 */
 	memset(videomemory, 0, videomemorysize);
 
-	info = framebuffer_alloc(sizeof(u32) * 256, &dev->dev);
+	// info->par 被分配了 sizeof(u32) * 16 字节
+	info = framebuffer_alloc(sizeof(u32) * 16, &dev->dev);
 	if (!info)
 		goto err;
 
+	// 虚拟地址
 	info->screen_base = (char __iomem *)videomemory;
+	info->screen_size = videomemorysize;
+	
 	// spi_qtft_ops 在 ops.c 中定义
 	info->fbops = &spi_qtft_ops;
 
-	retval = fb_find_mode(&info->var, info, NULL,
-			      NULL, 0, NULL, 8);
+	info->var = spi_qtft_var_default;
 
-	if (!retval || (retval == 4))
-		info->var = spi_qtft_var_default;
 	spi_qtft_fix_default.smem_start = (unsigned long) videomemory;
 	spi_qtft_fix_default.smem_len = videomemorysize;
 	info->fix = spi_qtft_fix_default;
+	
+	// 16色伪调色板作为私有数据存放在 info->par
 	info->pseudo_palette = info->par;
 	info->par = NULL;
-	info->flags = FBINFO_FLAG_DEFAULT;
+	info->flags = FBINFO_DEFAULT;
 
-	retval = fb_alloc_cmap(&info->cmap, 256, 0);
+	// 为16色伪调色板分配内存
+	retval = fb_alloc_cmap(&info->cmap, 16, 0);
 	if (retval < 0)
 		goto err1;
 
 	retval = register_framebuffer(info);
 	if (retval < 0)
 		goto err2;
+
+	// 将 info 指针存入平台设备私有数据
 	platform_set_drvdata(dev, info);
 
-	printk(KERN_INFO
-	       "fb%d: Virtual frame buffer device, using %ldK of video memory\n",
-	       info->node, videomemorysize >> 10);
-	return 0;
+	printk(KERN_INFO "SPI QVGA TFT LCD driver: fb%d, %ldK video memory\n", info->node, videomemorysize >> 10);
+	retval = 0;
+	goto out;
+
 err2:
 	fb_dealloc_cmap(&info->cmap);
 err1:
 	framebuffer_release(info);
 err:
 	rvfree(videomemory, videomemorysize);
+out:
 	func_out();
 	return retval;
 }
@@ -172,27 +177,33 @@ static struct platform_driver spi_qtft_driver =
 
 static int  __init spi_qtft_init(void)
 {
-	int ret = 0;
-
+	int err = 0;
 	func_in();
 
-	ret = platform_driver_register(&spi_qtft_driver);
+	err = platform_driver_register(&spi_qtft_driver);
+	if(err<0)
+		goto out;
 
-	if (!ret) {
-		spi_qtft_device = platform_device_alloc("spi_qtft", 0);
-
-		if (spi_qtft_device)
-			ret = platform_device_add(spi_qtft_device);
-		else
-			ret = -ENOMEM;
-
-		if (ret) {
-			platform_device_put(spi_qtft_device);
-			platform_driver_unregister(&spi_qtft_driver);
-		}
+	spi_qtft_device = platform_device_alloc("spi_qtft", 0);
+	if (!spi_qtft_device)
+	{
+		err = -ENOMEM;
+		goto unregister;
 	}
+
+	err = platform_device_add(spi_qtft_device);
+	if (err<0)
+		goto device_put;
+
+	goto out;
+
+device_put:
+	platform_device_put(spi_qtft_device);
+unregister:
+	platform_driver_unregister(&spi_qtft_driver);
+out:
 	func_out();
-	return ret;
+	return err;
 }
 
 static void __exit spi_qtft_exit(void)
