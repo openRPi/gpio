@@ -1,4 +1,4 @@
-/*
+/*  视频驱动的文件操作符
  *	
  *	Copyright (C) 2014 concefly <h.wenjian@openrpi.org>
  *	Copyright (C) 2014 openRPi
