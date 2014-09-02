@@ -37,6 +37,11 @@ static struct platform_device *spi_qtft_device;
 extern struct fb_var_screeninfo spi_qtft_var_default;
 extern struct fb_fix_screeninfo spi_qtft_fix_default;
 
+/**
+ * 分配显存
+ * @param  size 显存大小
+ * @return      指针
+ */
 static void *rvmalloc(unsigned long size)
 {
 	void *mem;
@@ -54,10 +59,14 @@ static void *rvmalloc(unsigned long size)
 		adr += PAGE_SIZE;
 		size -= PAGE_SIZE;
 	}
-
 	return mem;
 }
 
+/**
+ * 释放显存
+ * @param mem  指针
+ * @param size 大小
+ */
 static void rvfree(void *mem, unsigned long size)
 {
 	unsigned long adr;
@@ -129,7 +138,6 @@ static int spi_qtft_probe(struct platform_device * dev)
 	platform_set_drvdata(dev, info);
 
 	printk(KERN_INFO "SPI QVGA TFT LCD driver: fb%d, %ldK video memory\n", info->node, videomemorysize >> 10);
-	retval = 0;
 	goto out;
 
 err2:

@@ -83,15 +83,19 @@ int ops_setcolreg(unsigned regno, unsigned red, unsigned green, unsigned blue, u
 
 	((u32 *) (info->pseudo_palette))[regno] = v;
 
+	goto out;
+
 out:
 	func_out();
 	return err;
 }
 
-int ops_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg)
+/**
+ * 等待位块传送
+ */
+int ops_sync(struct fb_info *info)
 {
 	func_in();
-
 	func_out();
 	return 0;
 }
@@ -107,5 +111,5 @@ struct fb_ops spi_qtft_ops =
 	.fb_set_par   = ops_set_par,
 	.fb_setcolreg = ops_setcolreg,
 	.fb_blank     = ops_blank,
-	.fb_ioctl     = ops_ioctl,
+	.fb_sync      = ops_sync,
 };
