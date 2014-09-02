@@ -1,4 +1,4 @@
-/*  视频驱动的文件操作符
+/*
  *	
  *	Copyright (C) 2014 concefly <h.wenjian@openrpi.org>
  *	Copyright (C) 2014 openRPi
@@ -66,90 +66,26 @@ int ops_blank(int blank, struct fb_info *info)
 
 int ops_setcolreg(unsigned regno, unsigned red, unsigned green, unsigned blue, unsigned transp, struct fb_info *info)
 {
+	int err=0;
+	u32 v;
 	func_in();
 
-	if (regno >= 256)	/* no. of hw registers */
-		return 1;
-	/*
-	 * Program hardware... do anything you want with transp
-	 */
-
-	/* grayscale works only partially under directcolor */
-	if (info->var.grayscale) {
-		/* grayscale = 0.30*R + 0.59*G + 0.11*B */
-		red = green = blue =
-		    (red * 77 + green * 151 + blue * 28) >> 8;
+	if (regno >= 16)
+	{
+		err = 1;
+		goto out;
 	}
 
-	/* Directcolor:
-	 *   var->{color}.offset contains start of bitfield
-	 *   var->{color}.length contains length of bitfield
-	 *   {hardwarespecific} contains width of RAMDAC
-	 *   cmap[X] is programmed to (X << red.offset) | (X << green.offset) | (X << blue.offset)
-	 *   RAMDAC[X] is programmed to (red, green, blue)
-	 *
-	 * Pseudocolor:
-	 *    var->{color}.offset is 0 unless the palette index takes less than
-	 *                        bits_per_pixel bits and is stored in the upper
-	 *                        bits of the pixel value
-	 *    var->{color}.length is set so that 1 << length is the number of available
-	 *                        palette entries
-	 *    cmap is not used
-	 *    RAMDAC[X] is programmed to (red, green, blue)
-	 *
-	 * Truecolor:
-	 *    does not use DAC. Usually 3 are present.
-	 *    var->{color}.offset contains start of bitfield
-	 *    var->{color}.length contains length of bitfield
-	 *    cmap is programmed to (red << red.offset) | (green << green.offset) |
-	 *                      (blue << blue.offset) | (transp << transp.offset)
-	 *    RAMDAC does not exist
-	 */
-#define CNVT_TOHW(val,width) ((((val)<<(width))+0x7FFF-(val))>>16)
-	switch (info->fix.visual) {
-	case FB_VISUAL_TRUECOLOR:
-	case FB_VISUAL_PSEUDOCOLOR:
-		red = CNVT_TOHW(red, info->var.red.length);
-		green = CNVT_TOHW(green, info->var.green.length);
-		blue = CNVT_TOHW(blue, info->var.blue.length);
-		transp = CNVT_TOHW(transp, info->var.transp.length);
-		break;
-	case FB_VISUAL_DIRECTCOLOR:
-		red = CNVT_TOHW(red, 8);	/* expect 8 bit DAC */
-		green = CNVT_TOHW(green, 8);
-		blue = CNVT_TOHW(blue, 8);
-		/* hey, there is bug in transp handling... */
-		transp = CNVT_TOHW(transp, 8);
-		break;
-	}
-#undef CNVT_TOHW
-	/* Truecolor has hardware independent palette */
-	if (info->fix.visual == FB_VISUAL_TRUECOLOR) {
-		u32 v;
+	v = (red 	<< info->var.red.offset) 	|
+	    (green 	<< info->var.green.offset) 	|
+	    (blue 	<< info->var.blue.offset)	|
+	    (transp << info->var.transp.offset)	;
 
-		if (regno >= 16)
-			return 1;
+	((u32 *) (info->pseudo_palette))[regno] = v;
 
-		v = (red << info->var.red.offset) |
-		    (green << info->var.green.offset) |
-		    (blue << info->var.blue.offset) |
-		    (transp << info->var.transp.offset);
-		switch (info->var.bits_per_pixel) {
-		case 8:
-			break;
-		case 16:
-			((u32 *) (info->pseudo_palette))[regno] = v;
-			break;
-		case 24:
-		case 32:
-			((u32 *) (info->pseudo_palette))[regno] = v;
-			break;
-		}
-		return 0;
-	}
-
+out:
 	func_out();
-	return 0;
+	return err;
 }
 
 int ops_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg)
