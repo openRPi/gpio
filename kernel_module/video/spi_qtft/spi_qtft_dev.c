@@ -25,6 +25,7 @@
 #include "ops.h"
 
 #define SPI_BUS_NUM 0
+
 #define VIDEOMEMSIZE	(320*240*16) 
 
 #define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
@@ -41,9 +42,9 @@ extern struct fb_fix_screeninfo spi_qtft_fix_default;
 // 要注册的 SPI 设备信息
 static struct spi_board_info qtft_spi_board_info = 
 {
-	.modalias    = "chr_spi_dev",
+	.modalias    = "qtft_spi",
 	.bus_num     = SPI_BUS_NUM,
-	.chip_select = 2,
+	.chip_select = 0,
 };
 
 // 将被存入 fb_info.par
@@ -53,10 +54,6 @@ struct qtft_par
 	u32 palette[16];
 	// SPI 设备
 	struct spi_device *spi;
-	// D/C 接口
-	int gpio_dc;
-	// RESET 接口
-	int gpio_reset;
 };
 
 #define qtft_par_size() 	( sizeof(struct qtft_par) )
@@ -149,28 +146,6 @@ static void qtft_spi_device_unregister(struct qtft_par *par)
 	spi_unregister_device(spi);
 }
 
-static int qtft_gpio_regsiter(struct qtft_par *par)
-{
-	int err=0;
-
-	err = gpio_request(par->gpio_dc,"qtft_gpio_D/C");
-	if(err<0)
-		goto out;
-
-	err = gpio_request(par->gpio_reset,"qtft_gpio_RESET");
-	if(err<0)
-		goto out;
-
-out:
-	return err;
-}
-
-static void qtft_gpio_unregsiter(struct qtft_par *par)
-{
-	gpio_free(par->gpio_dc);
-	gpio_free(par->gpio_reset);
-}
-
 static int spi_qtft_probe(struct platform_device * dev)
 {
 	struct fb_info *info;
@@ -213,22 +188,14 @@ static int spi_qtft_probe(struct platform_device * dev)
 		goto err1;
 	}
 
-	// 申请GPIO
-	retval = qtft_gpio_regsiter(to_qtft_par(info->par));
-	if(retval<0)
-	{
-		dev_err(&dev->dev, "Can't register GPIO\n");
-		goto err2;
-	}
-
 	// 为16色伪调色板分配内存
 	retval = fb_alloc_cmap(&info->cmap, 16, 0);
 	if (retval < 0)
-		goto err3;
+		goto err2;
 
 	retval = register_framebuffer(info);
 	if (retval < 0)
-		goto err4;
+		goto err3;
 
 	// 将 info 指针存入平台设备私有数据
 	platform_set_drvdata(dev, info);
@@ -236,10 +203,8 @@ static int spi_qtft_probe(struct platform_device * dev)
 	printk(KERN_INFO "SPI QVGA TFT LCD driver: fb%d, %ldK video memory\n", info->node, videomemorysize >> 10);
 	goto out;
 
-err4:
-	fb_dealloc_cmap(&info->cmap);
 err3:
-	qtft_gpio_unregsiter(to_qtft_par(info->par));
+	fb_dealloc_cmap(&info->cmap);
 err2:
 	qtft_spi_device_unregister(to_qtft_par(info->par));
 err1:
@@ -260,7 +225,6 @@ static int spi_qtft_remove(struct platform_device *dev)
 	{
 		unregister_framebuffer(info);
 		fb_dealloc_cmap(&info->cmap);
-		qtft_gpio_unregsiter(info->par);
 		qtft_spi_device_unregister(info->par);
 		framebuffer_release(info);
 		rvfree(videomemory, videomemorysize);
