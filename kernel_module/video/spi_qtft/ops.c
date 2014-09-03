@@ -19,8 +19,8 @@
 #include <linux/uaccess.h>
 #include <linux/platform_device.h>
 
-#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
-#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
+#define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s (%d) --\n", __func__, __LINE__)
 
 extern struct fb_var_screeninfo spi_qtft_var_default;
 extern struct fb_fix_screeninfo spi_qtft_fix_default;

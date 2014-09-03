@@ -26,8 +26,8 @@
 
 #define VIDEOMEMSIZE	(320*240*16) 
 
-#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
-#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
+#define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s (%d) --\n", __func__, __LINE__)
 
 static void *videomemory;
 static u_long videomemorysize = VIDEOMEMSIZE;
