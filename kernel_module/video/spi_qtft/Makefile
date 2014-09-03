@@ -2,8 +2,8 @@
 
 ifneq ($(KERNELRELEASE),)
 	# kbuild syntax. dependency relationshsip of files and target modules are listed here.
-	obj-m := qtft_spi.o
-	# qtft_spi-objs := qtft_spi.o
+	obj-m := qtft.o
+	qtft-objs := qtft_spi.o qtft_gpio.o
 else
 	PWD  := $(shell pwd)
 	KDIR := ~/project/git/rpi_linux

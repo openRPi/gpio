@@ -23,6 +23,8 @@
 #include <linux/errno.h>
 #include <linux/spi/spi.h>
 
+#include "qtft_gpio.h"
+
 #define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
 #define func_out()	printk(KERN_INFO "-- %s (%d) --\n", __func__, __LINE__)
 
@@ -46,25 +48,32 @@ static struct spi_device_id qtft_spi_dri_idtable[] = {
 MODULE_DEVICE_TABLE(spi,qtft_spi_dri_idtable);
 
 /**
- * probe中注册 framebuffer 的device和driver
+ * probe中注册 framebuffer 的device和driver ?
  * @param  spi      设备spi结构体指针
  * @return          0或错误号
  */
 int qtft_spi_dri_probe(struct spi_device *spi)
 {
+	int err=0;
 	func_in();
 
-	printk(KERN_INFO "probe device. name=%s\n",spi->modalias);
+	err = qtft_gpio_init();
+	if(err)
+	{
+		dev_err(&spi->dev, "Can't init qtft gpio\n");
+		goto out;
+	}
 
+out:
 	func_out();
-	return 0;
+	return err;
 }
 
 int qtft_spi_dri_remove(struct spi_device *spi)
 {
 	func_in();
 
-	printk(KERN_INFO "remove device. name=%s\n",spi->modalias);
+	qtft_gpio_exit();
 
 	func_out();
 	return 0;
