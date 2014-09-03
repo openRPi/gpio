@@ -24,6 +24,7 @@
 #include <linux/spi/spi.h>
 
 #include "qtft_gpio.h"
+#include "qtft_fb.h"
 
 #define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
 #define func_out()	printk(KERN_INFO "-- %s (%d) --\n", __func__, __LINE__)
@@ -57,6 +58,7 @@ int qtft_spi_dri_probe(struct spi_device *spi)
 	int err=0;
 	func_in();
 
+	// 注册gpio
 	err = qtft_gpio_init();
 	if(err)
 	{
@@ -64,6 +66,16 @@ int qtft_spi_dri_probe(struct spi_device *spi)
 		goto out;
 	}
 
+	// 注册 framebuffer
+	err = qtft_fb_init();
+	if(err)
+	{
+		dev_err(&spi->dev, "Can't init qtft framebuffer\n");
+		goto err0;
+	}
+
+err0:
+	qtft_gpio_exit();
 out:
 	func_out();
 	return err;
@@ -74,6 +86,7 @@ int qtft_spi_dri_remove(struct spi_device *spi)
 	func_in();
 
 	qtft_gpio_exit();
+	qtft_fb_exit();
 
 	func_out();
 	return 0;

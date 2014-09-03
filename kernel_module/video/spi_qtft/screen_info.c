@@ -1,7 +1,7 @@
 
 #include <linux/fb.h>
 
-struct fb_var_screeninfo spi_qtft_var_default = {
+struct fb_var_screeninfo qtft_fb_var_default = {
 	.xres           = 320,
 	.yres           = 240,
 	.xres_virtual   = 320,
@@ -27,7 +27,7 @@ struct fb_var_screeninfo spi_qtft_var_default = {
 	.vmode = FB_VMODE_NONINTERLACED,
 };
 
-struct fb_fix_screeninfo spi_qtft_fix_default = {
+struct fb_fix_screeninfo qtft_fb_fix_default = {
 	.id        = "SPI QVGA TFT LED",
 	// Packed Pixels
 	.type      = FB_TYPE_PACKED_PIXELS,

@@ -22,8 +22,8 @@
 #define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
 #define func_out()	printk(KERN_INFO "-- %s (%d) --\n", __func__, __LINE__)
 
-extern struct fb_var_screeninfo spi_qtft_var_default;
-extern struct fb_fix_screeninfo spi_qtft_fix_default;
+extern struct fb_var_screeninfo qtft_fb_var_default;
+extern struct fb_fix_screeninfo qtft_fb_fix_default;
 
 ssize_t ops_read(struct fb_info *info, char __user *buf, size_t count, loff_t *ppos)
 {
@@ -116,7 +116,7 @@ ssize_t ops_write(struct fb_info *info, const char __user *buf, size_t count, lo
 int ops_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 {
 	func_in();
-	*var = spi_qtft_var_default;
+	*var = qtft_fb_var_default;
 	func_out();
 	return 0;
 }
@@ -171,7 +171,7 @@ int ops_sync(struct fb_info *info)
 	return 0;
 }
 
-struct fb_ops spi_qtft_ops = 
+struct fb_ops qtft_fb_ops = 
 {
 	.owner = THIS_MODULE,
 	
