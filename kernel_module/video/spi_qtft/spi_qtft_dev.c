@@ -17,13 +17,14 @@
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
-
+#include <linux/spi/spi.h>
 #include <linux/fb.h>
 #include <linux/init.h>
+#include <linux/gpio.h>
 
 #include "ops.h"
 
-
+#define SPI_BUS_NUM 0
 #define VIDEOMEMSIZE	(320*240*16) 
 
 #define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
@@ -36,6 +37,30 @@ static struct platform_device *spi_qtft_device;
 
 extern struct fb_var_screeninfo spi_qtft_var_default;
 extern struct fb_fix_screeninfo spi_qtft_fix_default;
+
+// 要注册的 SPI 设备信息
+static struct spi_board_info qtft_spi_board_info = 
+{
+	.modalias    = "chr_spi_dev",
+	.bus_num     = SPI_BUS_NUM,
+	.chip_select = 2,
+};
+
+// 将被存入 fb_info.par
+struct qtft_par
+{
+	// 调色板store
+	u32 palette[16];
+	// SPI 设备
+	struct spi_device *spi;
+	// D/C 接口
+	int gpio_dc;
+	// RESET 接口
+	int gpio_reset;
+};
+
+#define qtft_par_size() 	( sizeof(struct qtft_par) )
+#define to_qtft_par(par)	( (struct qtft_par *)par )
 
 /**
  * 分配显存
@@ -83,6 +108,69 @@ static void rvfree(void *mem, unsigned long size)
 	vfree(mem);
 }
 
+/**
+ * 注册SPI设备。
+ * 设备信息定义在qtft_spi_board_info。
+ * @param  par struct qtft_par 指针
+ * @return     0或错误号
+ */
+static int qtft_spi_device_register(struct qtft_par *par)
+{
+	struct spi_device * spi;
+	struct spi_master * master = NULL;
+	int err=0;
+
+	master = spi_busnum_to_master(SPI_BUS_NUM);
+	if (!master)
+	{
+		// printk(KERN_INFO "Can't get SPI master (bus %d)\n",SPI_BUS_NUM);
+		err = -ENODEV;
+		goto out;
+	}
+
+	spi = spi_new_device(master, &qtft_spi_board_info);
+	if (!spi)
+	{
+		// printk(KERN_INFO "Can't register SPI device: %s\n",qtft_spi_board_info.modalias);
+		err = -ENODEV;
+		goto out;
+	}
+
+	par->spi = spi;
+	goto out;
+
+out:
+	return err;
+}
+
+static void qtft_spi_device_unregister(struct qtft_par *par)
+{
+	struct spi_device *spi = par->spi;
+	spi_unregister_device(spi);
+}
+
+static int qtft_gpio_regsiter(struct qtft_par *par)
+{
+	int err=0;
+
+	err = gpio_request(par->gpio_dc,"qtft_gpio_D/C");
+	if(err<0)
+		goto out;
+
+	err = gpio_request(par->gpio_reset,"qtft_gpio_RESET");
+	if(err<0)
+		goto out;
+
+out:
+	return err;
+}
+
+static void qtft_gpio_unregsiter(struct qtft_par *par)
+{
+	gpio_free(par->gpio_dc);
+	gpio_free(par->gpio_reset);
+}
+
 static int spi_qtft_probe(struct platform_device * dev)
 {
 	struct fb_info *info;
@@ -93,25 +181,18 @@ static int spi_qtft_probe(struct platform_device * dev)
 	// 分配显存
 	if (!(videomemory = rvmalloc(videomemorysize)))
 		return retval;
-
-	/*
-	 * VFB must clear memory to prevent kernel info
-	 * leakage into userspace
-	 * VGA-based drivers MUST NOT clear memory if
-	 * they want to be able to take over vgacon
-	 */
 	memset(videomemory, 0, videomemorysize);
 
-	// info->par 被分配了 sizeof(u32) * 16 字节
-	info = framebuffer_alloc(sizeof(u32) * 16, &dev->dev);
+	// 动态分配 fb_info
+	info = framebuffer_alloc(qtft_par_size(), &dev->dev);
 	if (!info)
-		goto err;
+		goto err0;
 
 	// 虚拟地址
 	info->screen_base = (char __iomem *)videomemory;
 	info->screen_size = videomemorysize;
 	
-	// spi_qtft_ops 在 ops.c 中定义
+	// 文件操作符 spi_qtft_ops 在 ops.c 中定义
 	info->fbops = &spi_qtft_ops;
 
 	info->var = spi_qtft_var_default;
@@ -120,19 +201,34 @@ static int spi_qtft_probe(struct platform_device * dev)
 	spi_qtft_fix_default.smem_len = videomemorysize;
 	info->fix = spi_qtft_fix_default;
 	
-	// 16色伪调色板作为私有数据存放在 info->par
-	info->pseudo_palette = info->par;
-	info->par = NULL;
+	// 16色伪调色板指针指向了 info->par->palette
+	info->pseudo_palette = (void *) (to_qtft_par(info->par)->palette);
 	info->flags = FBINFO_DEFAULT;
+
+	// 注册SPI设备
+	retval = qtft_spi_device_register(to_qtft_par(info->par));
+	if(retval<0)
+	{
+		dev_err(&dev->dev, "Can't register SPI device: %s\n",qtft_spi_board_info.modalias);
+		goto err1;
+	}
+
+	// 申请GPIO
+	retval = qtft_gpio_regsiter(to_qtft_par(info->par));
+	if(retval<0)
+	{
+		dev_err(&dev->dev, "Can't register GPIO\n");
+		goto err2;
+	}
 
 	// 为16色伪调色板分配内存
 	retval = fb_alloc_cmap(&info->cmap, 16, 0);
 	if (retval < 0)
-		goto err1;
+		goto err3;
 
 	retval = register_framebuffer(info);
 	if (retval < 0)
-		goto err2;
+		goto err4;
 
 	// 将 info 指针存入平台设备私有数据
 	platform_set_drvdata(dev, info);
@@ -140,11 +236,15 @@ static int spi_qtft_probe(struct platform_device * dev)
 	printk(KERN_INFO "SPI QVGA TFT LCD driver: fb%d, %ldK video memory\n", info->node, videomemorysize >> 10);
 	goto out;
 
-err2:
+err4:
 	fb_dealloc_cmap(&info->cmap);
+err3:
+	qtft_gpio_unregsiter(to_qtft_par(info->par));
+err2:
+	qtft_spi_device_unregister(to_qtft_par(info->par));
 err1:
 	framebuffer_release(info);
-err:
+err0:
 	rvfree(videomemory, videomemorysize);
 out:
 	func_out();
@@ -156,11 +256,14 @@ static int spi_qtft_remove(struct platform_device *dev)
 	struct fb_info *info = platform_get_drvdata(dev);
 
 	func_in();
-	if (info) {
+	if (info)
+	{
 		unregister_framebuffer(info);
-		rvfree(videomemory, videomemorysize);
 		fb_dealloc_cmap(&info->cmap);
+		qtft_gpio_unregsiter(info->par);
+		qtft_spi_device_unregister(info->par);
 		framebuffer_release(info);
+		rvfree(videomemory, videomemorysize);
 	}
 	func_out();
 	return 0;
