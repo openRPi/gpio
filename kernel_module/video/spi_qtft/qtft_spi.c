@@ -1,6 +1,11 @@
 /*
  *	qtft 视频驱动的 SPI 子系统
  *	SPI 注册成功后，再进一步注册 framebuffer
+ *
+ *  依赖：spi_bcm2708 (SPI controller driver)
+ *
+ *  注意：不可先加载 spidev (User mode SPI device interface) 模块，
+ *  因为它会占用 chip_select 0~1，导致本模块无法加载。
  *	
  *	Copyright (C) 2014 concefly <h.wenjian@openrpi.org>
  *	Copyright (C) 2014 openRPi
@@ -29,7 +34,7 @@ static struct spi_board_info qtft_spi_dev_board_info[] __initdata = {
 	{
 		.modalias    = "qtft_spi_dev",
 		.bus_num     = SPI_BUS_NUM,
-		.chip_select = 2,
+		.chip_select = 0,
 	}
 };
 
