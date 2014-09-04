@@ -33,7 +33,7 @@
 
 static struct spi_device *device=NULL;
 
-static struct spi_board_info qtft_spi_dev_board_info[] __initdata = {
+static struct spi_board_info qtft_spi_dev_board_info[] = {
 	{
 		.modalias    = "qtft_spi_dev",
 		.bus_num     = SPI_BUS_NUM,
@@ -49,46 +49,15 @@ static struct spi_device_id qtft_spi_dri_idtable[] = {
 MODULE_DEVICE_TABLE(spi,qtft_spi_dri_idtable);
 
 /**
- * probe中注册 framebuffer 的device和driver ?
- * @param  spi      设备spi结构体指针
- * @return          0或错误号
+ * 初始化 LCD 模块
  */
 int qtft_spi_dri_probe(struct spi_device *spi)
 {
-	int err=0;
-	func_in();
-
-	// 注册gpio
-	err = qtft_gpio_init();
-	if(err)
-	{
-		dev_err(&spi->dev, "Can't init qtft gpio\n");
-		goto out;
-	}
-
-	// 注册 framebuffer
-	err = qtft_fb_init();
-	if(err)
-	{
-		dev_err(&spi->dev, "Can't init qtft framebuffer\n");
-		goto err0;
-	}
-
-err0:
-	qtft_gpio_exit();
-out:
-	func_out();
-	return err;
+	return 0;
 }
 
 int qtft_spi_dri_remove(struct spi_device *spi)
 {
-	func_in();
-
-	qtft_gpio_exit();
-	qtft_fb_exit();
-
-	func_out();
 	return 0;
 }
 
@@ -108,7 +77,7 @@ static void qtft_spi_device_unregister(struct spi_device *device)
 	spi_unregister_device(device);
 }
 
-static int __init qtft_spi_dri_init(void)
+int qtft_spi_init(void)
 {
 	int err=0;
 	struct spi_master *master=NULL;
@@ -146,7 +115,7 @@ out:
 	return err;
 }
 
-static void __exit qtft_spi_dri_exit(void)
+void qtft_spi_exit(void)
 {
 	func_in();
 
@@ -156,9 +125,4 @@ static void __exit qtft_spi_dri_exit(void)
 	func_out();
 }
 
-module_init(qtft_spi_dri_init);
-module_exit(qtft_spi_dri_exit);
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("h.wenjian@openrpi.org");
-MODULE_DESCRIPTION("qtft spi subsystem");
