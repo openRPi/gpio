@@ -1,6 +1,13 @@
 // ILI9341 芯片
-
+// 
 #include "lcd_lib.h"
+#include "bcm2835.h"
+
+#define NULL ((void *)0)
+
+#define TFT_RST RPI_V2_GPIO_P1_11
+#define TFT_DC  RPI_V2_GPIO_P1_12 
+// #define TFT_CS  RPI_V2_GPIO_P1_24
 
 enum flag_t {
 	flag_data,
@@ -15,7 +22,7 @@ enum flag_t {
  */
 void delay_ms(int ms)
 {
-	;
+	bcm2835_delay(ms);
 }
 
 /**
@@ -26,7 +33,35 @@ void delay_ms(int ms)
  */
 int iface_init(void)
 {
+	if(!bcm2835_init())
+		return -1;
+
+	bcm2835_gpio_fsel(TFT_RST, BCM2835_GPIO_FSEL_OUTP);
+	bcm2835_gpio_fsel(TFT_DC , BCM2835_GPIO_FSEL_OUTP);
+
+	bcm2835_spi_setDataMode(BCM2835_SPI_MODE3);
+	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_16);
+	bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
+	bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, 0);
+
+	bcm2835_gpio_write(TFT_RST, HIGH);;
+    delay_ms(5);
+	bcm2835_gpio_write(TFT_RST, LOW);;
+	delay_ms(5);
+	bcm2835_gpio_write(TFT_RST, HIGH);;
+
+	bcm2835_spi_begin();
+
 	return 0;
+}
+
+/**
+ * 释放底层接口
+ */
+void iface_exit(void)
+{
+	bcm2835_spi_end();
+	bcm2835_close();
 }
 
 /**
@@ -40,9 +75,39 @@ int iface_init(void)
  * @param  flag 标示符（自定义的其他操作）
  * @return      0或错误号
  */
-int iface_write_then_read(void *tbuf, int tn, void *rbuf, int rn, enum flag_t flag)
+int iface_write_then_read(const void *tbuf, int tn, void *rbuf, int rn, enum flag_t flag)
 {
-	return 0;
+	int err=0;
+
+	switch(flag)
+	{
+		case flag_cmd: 
+			bcm2835_gpio_write(TFT_DC, 0);
+			break;
+
+		case flag_data:
+			bcm2835_gpio_write(TFT_DC, 1);
+			break;
+
+		default:
+			err = -1;
+			goto out;
+	}
+
+	if(tn)
+	{
+		bcm2835_spi_writenb((char *)tbuf,tn);
+	}
+
+	if(rn)
+	{
+		bcm2835_spi_transfern((char *)rbuf,rn);
+	}
+
+	goto out;
+
+out:
+	return err;
 }
 
 int w8(unsigned char value, enum flag_t flag)
@@ -58,10 +123,10 @@ int r8(unsigned char *value, enum flag_t flag)
 int wc8_then_wd8(unsigned char cmd, unsigned char data)
 {
 	int err=0;
-	err = iface_w8(cmd, flag_cmd);
+	err = w8(cmd, flag_cmd);
 	if(err)
 		return err;
-	err = iface_w8(mode, flag_data);
+	err = w8(data, flag_data);
 	if(err)
 		return err;
 	return 0;
@@ -70,7 +135,7 @@ int wc8_then_wd8(unsigned char cmd, unsigned char data)
 int wc8_then_wdbuf(unsigned char cmd, const unsigned char *buf, int size)
 {
 	int err=0;
-	err = iface_w8(cmd, flag_cmd);
+	err = w8(cmd, flag_cmd);
 	if(err)
 		return err;
 	err = iface_write_then_read(buf, size, NULL, 0, flag_data);
@@ -82,7 +147,7 @@ int wc8_then_wdbuf(unsigned char cmd, const unsigned char *buf, int size)
 int wc8_then_rdbuf(unsigned char cmd, unsigned char *buf, int size)
 {
 	int err=0;
-	err = iface_w8(cmd, flag_cmd);
+	err = w8(cmd, flag_cmd);
 	if(err)
 		return err;
 	err = iface_write_then_read(NULL, 0, buf, size, flag_data);
@@ -118,7 +183,7 @@ int lcd_memory_write(const unsigned char *buf, int size)
 
 int lcd_column_address_set(int x1, int x2)
 {
-	unsigned char tbuf=[4];
+	unsigned char tbuf[4];
 	tbuf[0] = (x1 >> 8) & 0xff;
 	tbuf[1] = x1 & 0xff;
 	tbuf[2] = (x2 >> 8) & 0xff;
@@ -128,7 +193,7 @@ int lcd_column_address_set(int x1, int x2)
 
 int lcd_page_address_set(int y1, int y2)
 {
-	unsigned char tbuf=[4];
+	unsigned char tbuf[4];
 	tbuf[0] = (y1 >> 8) & 0xff;
 	tbuf[1] = y1 & 0xff;
 	tbuf[2] = (y2 >> 8) & 0xff;
@@ -166,8 +231,15 @@ int lcd_init(void)
 	err = lcd_sleep_out();
 	if(err)
 		return err;
-	
+
 	err = lcd_display_on();
 	if(err)
 		return err;
+
+	return 0;
+}
+
+void lcd_exit(void)
+{
+	iface_exit();
 }

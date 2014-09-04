@@ -2,6 +2,7 @@
 #define __lcd_lib__
 
 extern int lcd_init(void);
+extern void lcd_exit(void);
 
 #define PIXEL_FORMAT_16 0x55
 #define PIXEL_FORMAT_18 0x66
