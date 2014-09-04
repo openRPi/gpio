@@ -19,6 +19,9 @@
 #include <linux/uaccess.h>
 #include <linux/platform_device.h>
 
+#include "qtft_spi.h"
+#include "qtft_gpio.h"
+
 #define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
 #define func_out()	printk(KERN_INFO "-- %s (%d) --\n", __func__, __LINE__)
 
@@ -113,6 +116,19 @@ ssize_t ops_write(struct fb_info *info, const char __user *buf, size_t count, lo
 	return (err) ? err : count;
 }
 
+ssize_t ops_write_spi(struct fb_info *info, const char __user *buf, size_t count, loff_t *ppos)
+{
+	int err = 0;
+
+	// 写入缓存，用于 ops_read() 
+	err = ops_write(info, buf, count, ppos);
+	if(err)
+		goto out;
+
+out:
+	return err;
+}
+
 int ops_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 {
 	func_in();
@@ -178,9 +194,15 @@ struct fb_ops qtft_fb_ops =
 	.fb_read      = ops_read,
 	.fb_write     = ops_write,
 
-	.fb_check_var = ops_check_var,
-	.fb_set_par   = ops_set_par,
+	/* checks var and eventually tweaks it to something supported,
+     * DO NOT MODIFY PAR */
+	// .fb_check_var = ops_check_var,
+
+	/* set the video mode according to info->var */
+	// .fb_set_par   = ops_set_par,
+
+	/* set color register */
 	.fb_setcolreg = ops_setcolreg,
-	.fb_blank     = ops_blank,
-	.fb_sync      = ops_sync,
+	// .fb_blank     = ops_blank,
+	// .fb_sync      = ops_sync,
 };
