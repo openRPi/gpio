@@ -14,7 +14,7 @@
 
 #include "lcd_lib.h"
 
-#define VIDEOMEMSIZE	(320*240*16) 
+#define VIDEOMEMSIZE	(320*240*2) 
 
 #define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
 #define func_out()	printk(KERN_INFO "-- %s (%d) --\n", __func__, __LINE__)

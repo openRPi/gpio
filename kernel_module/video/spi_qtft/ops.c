@@ -37,8 +37,6 @@ ssize_t ops_read(struct fb_info *info, char __user *buf, size_t count, loff_t *p
 	int err=0;
 	int x1,x2,y1,y2;
 
-	func_in();
-
 	if (info->state != FBINFO_STATE_RUNNING)
 		return -EPERM;
 
@@ -66,10 +64,10 @@ ssize_t ops_read(struct fb_info *info, char __user *buf, size_t count, loff_t *p
 		goto out;
 	}
 
-	x1 = p/(info->var.xres);
-	y1 = p%(info->var.yres);
-	x2 = (p+count)/(info->var.xres);
-	y2 = (p+count)%(info->var.yres);
+	x1 = p%(info->var.xres);
+	y1 = p/(info->var.yres);
+	x2 = (p+count)%(info->var.xres);
+	y2 = (p+count)/(info->var.yres);
 
 	err = lcd_memory_area_read(x1,y1,x2,y2,fb_buf,count);
 	if(err)
@@ -82,12 +80,13 @@ ssize_t ops_read(struct fb_info *info, char __user *buf, size_t count, loff_t *p
 	}
 
 	*ppos += count;
+	
+	err = count;
 	goto err0;
 
 err0:
 	kfree(fb_buf);
 out:
-	func_out();
 	return err;
 }
 
@@ -98,8 +97,6 @@ ssize_t ops_write(struct fb_info *info, const char __user *buf, size_t count, lo
 	unsigned long total_size;
 	int err=0;
 	int x1,x2,y1,y2;
-
-	func_in();
 
 	if (info->state != FBINFO_STATE_RUNNING)
 		return -EPERM;
@@ -134,22 +131,25 @@ ssize_t ops_write(struct fb_info *info, const char __user *buf, size_t count, lo
 		goto err0;
 	}
 
-	x1 = p/(info->var.xres);
-	y1 = p%(info->var.yres);
-	x2 = (p+count)/(info->var.xres);
-	y2 = (p+count)%(info->var.yres);
+	x1 = p%(info->var.xres);
+	y1 = p/(info->var.yres);
+	x2 = (p+count)%(info->var.xres);
+	y2 = (p+count)/(info->var.yres);
+
+	printk(KERN_INFO "count=%d, pos=%d, x1=%d, y1=%d, x2=%d, y2=%d\n",count,p,x1,y1,x2,y2);
 
 	err = lcd_memory_area_write(x1,y1,x2,y2,fb_buf,count);
 	if(err)
 		goto err0;
 
 	*ppos += count;
+
+	err = count;
 	goto err0;
 
 err0:
 	kfree(fb_buf);
 out:
-	func_out();
 	return err;
 }
 
