@@ -32,7 +32,7 @@
 
 #define SPI_BUS_NUM 0
 
-static struct spi_device *device=NULL;
+static struct spi_device *current_device=NULL;
 
 static struct spi_board_info qtft_spi_dev_board_info[] = {
 	{
@@ -53,177 +53,11 @@ MODULE_DEVICE_TABLE(spi,qtft_spi_dri_idtable);
 #define lcd_context_reg()	qtft_gpio_set_dc(0)
 #define lcd_context_data()	qtft_gpio_set_dc(1)
 
-/**
- * 初始化 LCD 模块。
- * 会引起睡眠
- * @return  0或错误号
- */
-int lcd_init(struct spi_device *dev)
-{
-	qtft_gpio_set_reset(1);
-	msleep(5);
-	qtft_gpio_set_reset(0);
-	msleep(5);
-	qtft_gpio_set_reset(1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xCB", 1);
-	lcd_context_data();
-	spi_write(dev, "\x39", 1);
-	spi_write(dev, "\x2C", 1);
-	spi_write(dev, "\x00", 1);
-	spi_write(dev, "\x34", 1);
-	spi_write(dev, "\x02", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xCF", 1);
-	lcd_context_data();
-	spi_write(dev, "\x00", 1);
-	spi_write(dev, "\xC1", 1);
-	spi_write(dev, "\x30", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xE8", 1);
-	lcd_context_data();
-	spi_write(dev, "\x85", 1);
-	spi_write(dev, "\x00", 1);
-	spi_write(dev, "\x78", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xEA", 1);
-	lcd_context_data();
-	spi_write(dev, "\x00", 1);
-	spi_write(dev, "\x00", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xED", 1);
-	lcd_context_data();
-	spi_write(dev, "\x64", 1);
-	spi_write(dev, "\x03", 1);
-	spi_write(dev, "\x12", 1);
-	spi_write(dev, "\x81", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xF7", 1);
-	lcd_context_data();
-	spi_write(dev, "\x20", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xC0", 1);
-	lcd_context_data();
-	spi_write(dev, "\x23", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xC1", 1);
-	lcd_context_data();
-	spi_write(dev, "\x10", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xC5", 1);
-	lcd_context_data();
-	spi_write(dev, "\x3E", 1);
-	spi_write(dev, "\x28", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xC7", 1);
-	lcd_context_data();
-	spi_write(dev, "\x86", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\x36", 1);
-	lcd_context_data();
-	spi_write(dev, "\x28", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\x3A", 1);
-	lcd_context_data();
-	spi_write(dev, "\x55", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xB1", 1);
-	lcd_context_data();
-	spi_write(dev, "\x00", 1);
-	spi_write(dev, "\x18", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xB6", 1);
-	lcd_context_data();
-	spi_write(dev, "\x08", 1);
-	spi_write(dev, "\x82", 1);
-	spi_write(dev, "\x27", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xF2", 1);
-	lcd_context_data();
-	spi_write(dev, "\x00", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\x26", 1);
-	lcd_context_data();
-	spi_write(dev, "\x01", 1);
-
-	lcd_context_reg();
-	spi_write(dev, "\xE0", 1);     //Set Gamma 
-	lcd_context_data();
-	spi_write(dev, "\x0F", 1); 
-	spi_write(dev, "\x31", 1); 
-	spi_write(dev, "\x2B", 1); 
-	spi_write(dev, "\x0C", 1); 
-	spi_write(dev, "\x0E", 1); 
-	spi_write(dev, "\x08", 1); 
-	spi_write(dev, "\x4E", 1); 
-	spi_write(dev, "\xF1", 1); 
-	spi_write(dev, "\x37", 1); 
-	spi_write(dev, "\x07", 1); 
-	spi_write(dev, "\x10", 1); 
-	spi_write(dev, "\x03", 1); 
-	spi_write(dev, "\x0E", 1); 
-	spi_write(dev, "\x09", 1); 
-	spi_write(dev, "\x00", 1); 
-
-	lcd_context_reg();
-	spi_write(dev, "\xE1", 1);    //Set Gamma 
-	lcd_context_data();
-	spi_write(dev, "\x00", 1); 
-	spi_write(dev, "\x0E", 1); 
-	spi_write(dev, "\x14", 1); 
-	spi_write(dev, "\x03", 1); 
-	spi_write(dev, "\x11", 1); 
-	spi_write(dev, "\x07", 1); 
-	spi_write(dev, "\x31", 1); 
-	spi_write(dev, "\xC1", 1); 
-	spi_write(dev, "\x48", 1); 
-	spi_write(dev, "\x08", 1); 
-	spi_write(dev, "\x0F", 1); 
-	spi_write(dev, "\x0C", 1); 
-	spi_write(dev, "\x31", 1); 
-	spi_write(dev, "\x36", 1); 
-	spi_write(dev, "\x0F", 1); 
-
-	lcd_context_reg();
-	spi_write(dev, "\x11", 1);
-	msleep(120);
-
-	spi_write(dev, "\x29", 1);
-	spi_write(dev, "\x2C", 1);
-
-	return 0;
-}
-
-/**
- * 初始化 LCD 模块
- */
 int qtft_spi_dri_probe(struct spi_device *dev)
 {
 	int err = 0;
 
-	err = lcd_init(dev);
-	if(err)
-	{
-		dev_err(&dev->dev, "Can't init LCD\n");
-		goto out;
-	}
-
+	current_device = dev;
 	goto out;
 
 out:
@@ -232,6 +66,7 @@ out:
 
 int qtft_spi_dri_remove(struct spi_device *dev)
 {
+	current_device = NULL;
 	return 0;
 }
 
@@ -255,6 +90,7 @@ int qtft_spi_init(void)
 {
 	int err=0;
 	struct spi_master *master=NULL;
+	struct spi_device *new_device=NULL;
 	func_in();
 
 	err = spi_register_driver(&qtft_spi_dri_driver);
@@ -272,8 +108,8 @@ int qtft_spi_init(void)
 		goto err0;
 	}
 
-	device = spi_new_device(master, qtft_spi_dev_board_info);
-	if(!device)
+	new_device = spi_new_device(master, qtft_spi_dev_board_info);
+	if(!new_device)
 	{
 		printk(KERN_ERR "Can't register spi device \n");
 		err = -ENODEV;
@@ -293,18 +129,32 @@ void qtft_spi_exit(void)
 {
 	func_in();
 
-	qtft_spi_device_unregister(device);
+	qtft_spi_device_unregister(current_device);
 	spi_unregister_driver(&qtft_spi_dri_driver);
 
 	func_out();
 }
 
+int qtft_spi_write_then_read(const void *tbuf, size_t tn, void *rbuf, size_t rn)
+{
+	if(current_device)
+		return spi_write_then_read(current_device, tbuf, tn, rbuf, rn);
+	else
+		return -ENODEV;
+}
+
 int qtft_spi_write(const void *buf, size_t len)
 {
-	return spi_write(device, buf, len);
+	if(current_device)
+		return spi_write(current_device, buf, len);
+	else
+		return -ENODEV;
 }
 
 int qtft_spi_read(void *buf, size_t len)
 {
-	return spi_read(device, buf, len);
+	if(current_device)
+		return spi_read(current_device, buf, len);
+	else
+		return -ENODEV;
 }

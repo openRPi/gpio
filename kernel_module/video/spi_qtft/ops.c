@@ -21,6 +21,7 @@
 
 #include "qtft_spi.h"
 #include "qtft_gpio.h"
+#include "lcd_lib.h"
 
 #define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
 #define func_out()	printk(KERN_INFO "-- %s (%d) --\n", __func__, __LINE__)
@@ -31,51 +32,11 @@ extern struct fb_fix_screeninfo qtft_fb_fix_default;
 ssize_t ops_read(struct fb_info *info, char __user *buf, size_t count, loff_t *ppos)
 {
 	unsigned long p = *ppos;
-	void *src;
-	int err = 0;
+	unsigned char *fb_buf=NULL;
 	unsigned long total_size;
+	int err=0;
+	int x1,x2,y1,y2;
 
-	func_in();
-
-	if (info->state != FBINFO_STATE_RUNNING)
-		return -EPERM;
-
-	total_size = info->screen_size;
-
-	if (total_size == 0)
-		total_size = info->fix.smem_len;
-
-	if (p >= total_size)
-		return 0;
-
-	if (count >= total_size)
-		count = total_size;
-
-	if (count + p > total_size)
-		count = total_size - p;
-
-	src = (void __force *)(info->screen_base + p);
-
-	if (info->fbops->fb_sync)
-		info->fbops->fb_sync(info);
-
-	if (copy_to_user(buf, src, count))
-		err = -EFAULT;
-
-	if  (!err)
-		*ppos += count;
-
-	func_out();
-	return (err) ? err : count;
-}
-
-ssize_t ops_write(struct fb_info *info, const char __user *buf, size_t count, loff_t *ppos)
-{
-	unsigned long p = *ppos;
-	void *dst;
-	int err = 0;
-	unsigned long total_size;
-	
 	func_in();
 
 	if (info->state != FBINFO_STATE_RUNNING)
@@ -87,45 +48,108 @@ ssize_t ops_write(struct fb_info *info, const char __user *buf, size_t count, lo
 		total_size = info->fix.smem_len;
 
 	if (p > total_size)
-		return -EFBIG;
-
-	if (count > total_size) {
+	{
 		err = -EFBIG;
+		goto out;
+	}
+
+	if (count > total_size) 
 		count = total_size;
-	}
 
-	if (count + p > total_size) {
-		if (!err)
-			err = -ENOSPC;
-
+	if (count + p > total_size) 
 		count = total_size - p;
+
+	fb_buf = kmalloc(count,GFP_KERNEL);
+	if(!fb_buf)
+	{
+		err = -EBUSY;
+		goto out;
 	}
 
-	dst = (void __force *) (info->screen_base + p);
+	x1 = p/(info->var.xres);
+	y1 = p%(info->var.yres);
+	x2 = (p+count)/(info->var.xres);
+	y2 = (p+count)%(info->var.yres);
 
-	if (info->fbops->fb_sync)
-		info->fbops->fb_sync(info);
+	err = lcd_memory_area_read(x1,y1,x2,y2,fb_buf,count);
+	if(err)
+		goto err0;
 
-	if (copy_from_user(dst, buf, count))
+	if(copy_to_user(buf, fb_buf, count))
+	{
 		err = -EFAULT;
+		goto err0;
+	}
 
-	if  (!err)
-		*ppos += count;
-	
+	*ppos += count;
+	goto err0;
+
+err0:
+	kfree(fb_buf);
+out:
 	func_out();
-	return (err) ? err : count;
+	return err;
 }
 
-ssize_t ops_write_spi(struct fb_info *info, const char __user *buf, size_t count, loff_t *ppos)
+ssize_t ops_write(struct fb_info *info, const char __user *buf, size_t count, loff_t *ppos)
 {
-	int err = 0;
+	unsigned long p = *ppos;
+	unsigned char *fb_buf=NULL;
+	unsigned long total_size;
+	int err=0;
+	int x1,x2,y1,y2;
 
-	// 写入缓存，用于 ops_read() 
-	err = ops_write(info, buf, count, ppos);
-	if(err)
+	func_in();
+
+	if (info->state != FBINFO_STATE_RUNNING)
+		return -EPERM;
+
+	total_size = info->screen_size;
+
+	if (total_size == 0)
+		total_size = info->fix.smem_len;
+
+	if (p > total_size)
+	{
+		err = -EFBIG;
 		goto out;
+	}
 
+	if (count > total_size) 
+		count = total_size;
+
+	if (count + p > total_size) 
+		count = total_size - p;
+
+	fb_buf = kmalloc(count,GFP_KERNEL);
+	if(!fb_buf)
+	{
+		err = -EBUSY;
+		goto out;
+	}
+
+	if(copy_from_user(fb_buf, buf, count))
+	{
+		err = -EFAULT;
+		goto err0;
+	}
+
+	x1 = p/(info->var.xres);
+	y1 = p%(info->var.yres);
+	x2 = (p+count)/(info->var.xres);
+	y2 = (p+count)%(info->var.yres);
+
+	err = lcd_memory_area_write(x1,y1,x2,y2,fb_buf,count);
+	if(err)
+		goto err0;
+
+	*ppos += count;
+	goto err0;
+
+err0:
+	kfree(fb_buf);
 out:
+	func_out();
 	return err;
 }
 

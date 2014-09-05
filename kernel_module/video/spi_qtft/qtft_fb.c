@@ -12,6 +12,8 @@
 #include <linux/init.h>
 #include <linux/gpio.h>
 
+#include "lcd_lib.h"
+
 #define VIDEOMEMSIZE	(320*240*16) 
 
 #define func_in()	printk(KERN_INFO "++ %s (%d) ++\n", __func__, __LINE__)
@@ -119,12 +121,19 @@ static int qtft_fb_probe(struct platform_device * dev)
 	if (retval < 0)
 		goto err2;
 
+	// 初始化 LCD 模块
+	retval = lcd_init_normal();
+	if (retval < 0)
+		goto err3;
+	
 	// 将 info 指针存入平台设备私有数据
 	platform_set_drvdata(dev, info);
 
 	printk(KERN_INFO "SPI QVGA TFT LCD driver: fb%d, %ldK video memory\n", info->node, videomemorysize >> 10);
 	goto out;
 
+err3:
+	unregister_framebuffer(info);
 err2:
 	fb_dealloc_cmap(&info->cmap);
 err1:
@@ -143,6 +152,7 @@ static int qtft_fb_remove(struct platform_device *dev)
 	func_in();
 	if (info)
 	{
+		lcd_exit();
 		unregister_framebuffer(info);
 		fb_dealloc_cmap(&info->cmap);
 		framebuffer_release(info);

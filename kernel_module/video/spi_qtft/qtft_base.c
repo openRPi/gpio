@@ -40,6 +40,8 @@ static int __init qtft_base_init(void)
 		goto err1;
 	}
 
+	goto out;
+
 err1:
 	qtft_spi_exit();
 err0:
