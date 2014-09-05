@@ -39,18 +39,19 @@ int iface_init(void)
 	bcm2835_gpio_fsel(TFT_RST, BCM2835_GPIO_FSEL_OUTP);
 	bcm2835_gpio_fsel(TFT_DC , BCM2835_GPIO_FSEL_OUTP);
 
-	bcm2835_spi_setDataMode(BCM2835_SPI_MODE3);
-	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_16);
+	bcm2835_spi_begin();
+
+	bcm2835_spi_setDataMode(BCM2835_SPI_MODE0);
+	bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_8);
 	bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
 	bcm2835_spi_setChipSelectPolarity(BCM2835_SPI_CS0, 0);
 
-	bcm2835_gpio_write(TFT_RST, HIGH);;
+	bcm2835_gpio_write(TFT_RST, HIGH);
     delay_ms(5);
-	bcm2835_gpio_write(TFT_RST, LOW);;
-	delay_ms(5);
-	bcm2835_gpio_write(TFT_RST, HIGH);;
-
-	bcm2835_spi_begin();
+	bcm2835_gpio_write(TFT_RST, LOW);
+	delay_ms(20);
+	bcm2835_gpio_write(TFT_RST, HIGH);
+	delay_ms(120);
 
 	return 0;
 }
@@ -156,9 +157,19 @@ int wc8_then_rdbuf(unsigned char cmd, unsigned char *buf, int size)
 	return 0;
 }
 
+int lcd_sleep_in(int delay)
+{
+	int err=0;
+	err = w8(0x10,flag_cmd);
+	if(err || !delay)
+		return err;
+	delay_ms(delay);
+	return 0;
+}
+
 int lcd_sleep_out(void)
 {
-	return w8(0x10, flag_cmd);
+	return w8(0x11, flag_cmd);
 }
 
 int lcd_memory_access_control(int mode)
@@ -171,13 +182,19 @@ int lcd_pixel_format_set(int mode)
 	return wc8_then_wd8(0x3a, mode);
 }
 
+int lcd_display_off(void)
+{
+	return w8(0x28,flag_cmd);
+}
+
 int lcd_display_on(void)
 {
 	return w8(0x29, flag_cmd);
 }
 
-int lcd_memory_write(const unsigned char *buf, int size)
+int lcd_memory_area_write(int x1, int y1, int x2, int y2, const unsigned char *buf, int size)
 {
+	lcd_address_set(x1, y1, x2, y2);
 	return wc8_then_wdbuf(0x2c, buf, size);
 }
 
@@ -212,6 +229,27 @@ int lcd_memory_area_read(int x1, int y1, int x2, int y2, unsigned char *buf, int
 	return err? err : min;
 }
 
+int lcd_power_contral_a(int reg_vd, int vbc)
+{
+	unsigned char buf[5] = {0x39,0x2c,0x00,
+		0x34|(reg_vd&0x07),0x02|(vbc&0x07)};
+
+	return wc8_then_wdbuf(0xcb, buf, 5);
+}
+
+int lcd_power_contral_b(int pc, int dc_ena)
+{
+	unsigned char buf[5] = {0x39,0x2c,0x00,
+		0x81|((pc<<3)&0x18), dc_ena? 0x40:0x30};
+
+	return wc8_then_wdbuf(0xcf, buf, 5);
+}
+
+int lcd_soft_reset(void)
+{
+	return w8(0x01, flag_cmd);
+}
+
 int lcd_init(void)
 {
 	int err=0;
@@ -220,21 +258,116 @@ int lcd_init(void)
 	if(err)
 		return err;
 
-	err = lcd_memory_access_control(MEMORY_ACCESS_NORMAL);
-	if(err)
-		return err;
+	return 0;
+}
 
-	err = lcd_pixel_format_set(PIXEL_FORMAT_16);
-	if(err)
-		return err;
+int lcd_init_normal(void)
+{
+	#define return_err(func) do{int err=func; if(err){return err;}}while(0)
 
-	err = lcd_sleep_out();
-	if(err)
-		return err;
+	return_err( lcd_init() );
+	return_err( lcd_memory_access_control(MEMORY_ACCESS_NORMAL) );
+	return_err( lcd_pixel_format_set(PIXEL_FORMAT_16) );
+	return_err( lcd_power_contral_a(0,0) );
+	return_err( lcd_power_contral_b(0,0) );
 
-	err = lcd_display_on();
-	if(err)
-		return err;
+	#define LCD_wr_reg(value) w8(value,flag_cmd)
+	#define LCD_wr_data8(value) w8(value,flag_data)
+
+    LCD_wr_reg(0xCF);  
+    LCD_wr_data8(0x00); 
+    LCD_wr_data8(0XC1); 
+    LCD_wr_data8(0X30); 
+
+    LCD_wr_reg(0xE8);  
+    LCD_wr_data8(0x85); 
+    LCD_wr_data8(0x00); 
+    LCD_wr_data8(0x78); 
+
+    LCD_wr_reg(0xEA);  
+    LCD_wr_data8(0x00); 
+    LCD_wr_data8(0x00); 
+
+    LCD_wr_reg(0xED);  
+    LCD_wr_data8(0x64); 
+    LCD_wr_data8(0x03); 
+    LCD_wr_data8(0X12); 
+    LCD_wr_data8(0X81); 
+
+    LCD_wr_reg(0xF7);  
+    LCD_wr_data8(0x20); 
+
+    LCD_wr_reg(0xC0);    //Power control 
+    LCD_wr_data8(0x23);   //VRH[5:0] 
+
+    LCD_wr_reg(0xC1);    //Power control 
+    LCD_wr_data8(0x10);   //SAP[2:0];BT[3:0] 
+
+    LCD_wr_reg(0xC5);    //VCM control 
+    LCD_wr_data8(0x3e); //对比度调节
+    LCD_wr_data8(0x28); 
+
+    LCD_wr_reg(0xC7);    //VCM control2 
+    LCD_wr_data8(0x86);  //--
+
+    LCD_wr_reg(0xB1);    
+    LCD_wr_data8(0x00);  
+    LCD_wr_data8(0x18); 
+
+    LCD_wr_reg(0xB6);    // Display Function Control 
+    LCD_wr_data8(0x08); 
+    LCD_wr_data8(0x82);
+    LCD_wr_data8(0x27);  
+
+    LCD_wr_reg(0xF2);    // 3Gamma Function Disable 
+    LCD_wr_data8(0x00); 
+
+    LCD_wr_reg(0x26);    //Gamma curve selected 
+    LCD_wr_data8(0x01); 
+
+    LCD_wr_reg(0xE0);    //Set Gamma 
+    LCD_wr_data8(0x0F); 
+    LCD_wr_data8(0x31); 
+    LCD_wr_data8(0x2B); 
+    LCD_wr_data8(0x0C); 
+    LCD_wr_data8(0x0E); 
+    LCD_wr_data8(0x08); 
+    LCD_wr_data8(0x4E); 
+    LCD_wr_data8(0xF1); 
+    LCD_wr_data8(0x37); 
+    LCD_wr_data8(0x07); 
+    LCD_wr_data8(0x10); 
+    LCD_wr_data8(0x03); 
+    LCD_wr_data8(0x0E); 
+    LCD_wr_data8(0x09); 
+    LCD_wr_data8(0x00); 
+
+    LCD_wr_reg(0XE1);    //Set Gamma 
+    LCD_wr_data8(0x00); 
+    LCD_wr_data8(0x0E); 
+    LCD_wr_data8(0x14); 
+    LCD_wr_data8(0x03); 
+    LCD_wr_data8(0x11); 
+    LCD_wr_data8(0x07); 
+    LCD_wr_data8(0x31); 
+    LCD_wr_data8(0xC1); 
+    LCD_wr_data8(0x48); 
+    LCD_wr_data8(0x08); 
+    LCD_wr_data8(0x0F); 
+    LCD_wr_data8(0x0C); 
+    LCD_wr_data8(0x31); 
+    LCD_wr_data8(0x36); 
+    LCD_wr_data8(0x0F); 
+
+    #undef LCD_wr_reg 
+	#undef LCD_wr_data8 
+
+	return_err( lcd_sleep_out() );
+	delay_ms(100);
+
+	return_err( lcd_display_on() );
+
+	#undef return_err
 
 	return 0;
 }
