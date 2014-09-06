@@ -31,7 +31,7 @@ static struct spi_board_info spi_tool_dev_board_info[] __initdata = {
 	{
 		.modalias    = "spi_tool_dev",
 		.bus_num     = SPI_BUS_NUM,
-		.max_speed_hz = 7.8125e6,
+		.max_speed_hz = 8e6,
 		.chip_select = 0,
 	}
 };
