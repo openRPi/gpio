@@ -21,7 +21,7 @@ int main()
 		return 1;
 	}
 	
-	lcd_memory_write(pic_table[0],320*240*2);
+	lcd_memory_write(pic_table[0],320*240*2,0);
 
 	lcd_exit();
 	
