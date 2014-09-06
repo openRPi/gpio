@@ -131,10 +131,10 @@ ssize_t ops_write(struct fb_info *info, const char __user *buf, size_t count, lo
 		goto err0;
 	}
 
-	x1 = p%(info->var.xres);
-	y1 = p/(info->var.yres);
-	x2 = (p+count)%(info->var.xres);
-	y2 = (p+count)/(info->var.yres);
+	x1 = p%(info->var.xres*2);
+	y1 = p/(info->var.yres*2);
+	x2 = (p+count)%(info->var.xres*2);
+	y2 = (p+count)/(info->var.yres*2);
 
 	printk(KERN_INFO "count=%d, pos=%d, x1=%d, y1=%d, x2=%d, y2=%d\n",count,p,x1,y1,x2,y2);
 
