@@ -1,6 +1,6 @@
 /*
  *	注册SPI设备到内核
- *	设备名chr_spi_dev，设备地址0x10.
+ *	设备名chr_spi_dev，挂载到总线号0.
  *	只完成加载和卸载的工作。
  *	
  *	Copyright (C) 2014 concefly <h.wenjian@openrpi.org>
@@ -8,7 +8,7 @@
  *	
  *		代码遵循GNU协议
  *	
- *	文档：http://www.openrpi.org/blogs/?p=281
+ *	文档：http://www.openrpi.org/blogs/?p=305
  */
 
 #include <linux/module.h>
@@ -20,9 +20,12 @@
 #include <linux/spi/spi.h>
 
 /**
- * 
+ * 挂载到总线号0
  */
 #define BUS_NUM 0
+
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
 
 struct spi_master * master = NULL;
 struct spi_device * device = NULL;
@@ -37,11 +40,8 @@ static struct spi_board_info chr_spi_dev_board_info[] __initdata = {
 
 static int __init chr_spi_dev_init(void)
 {
-	printk(KERN_INFO "++ chr_spi_dev_init ++\n");
+	func_in();
 
-	/**
-	 * 
-	 */
 	master = spi_busnum_to_master(BUS_NUM);
 	if (!master)
 		return -ENODEV;
@@ -57,13 +57,13 @@ static int __init chr_spi_dev_init(void)
 	else
 		return -ENODEV;
 
-	printk(KERN_INFO "-- chr_spi_dev_init --\n");
+	func_out();
 	return 0;
 }
 
 static void __exit chr_spi_dev_exit(void)
 {
-	printk(KERN_INFO "++ chr_spi_dev_exit ++\n");
+	func_in();
 
 	if(device)
 	{
@@ -71,7 +71,7 @@ static void __exit chr_spi_dev_exit(void)
 		printk(KERN_INFO "release device.\n");
 	}
 
-	printk(KERN_INFO "-- chr_spi_dev_exit --\n");
+	func_out();
 }
 
 module_init(chr_spi_dev_init);

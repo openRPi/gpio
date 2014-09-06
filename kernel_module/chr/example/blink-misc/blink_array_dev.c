@@ -1,3 +1,18 @@
+/*
+ *	自由操作8个LED。注册为混杂设备。
+ *	
+ *	所有混杂设备的主设备号都为10
+ *	混杂类目录 /sys/class/misc
+ *	设备目录 /dev/chr_chr_buf_dev
+ *	
+ *	Copyright (C) 2014 concefly <h.wenjian@openrpi.org>
+ *	Copyright (C) 2014 openRPi
+ *	
+ *		代码遵循GNU协议
+ *	
+ *	文档：？
+ */
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -6,13 +21,11 @@
 #include <linux/errno.h>
 #include <linux/gpio.h>
 
-/* 所有混杂设备的主设备号都为10
- * 混杂类目录 /sys/class/misc
- * 设备目录 /dev/blink_array_dev
- */
-
 #define LED_ON 1
 #define LED_OFF 0
+
+#define func_in()	printk(KERN_INFO "++ %s:%s (%d) ++\n", __FILE__, __func__, __LINE__)
+#define func_out()	printk(KERN_INFO "-- %s:%s (%d) --\n", __FILE__, __func__, __LINE__)
 
 static int gpio_array[8] = {4,17,18,27,22,23,24,25};
 static char *gpio_array_name[8] = {
@@ -28,13 +41,15 @@ static char *gpio_array_name[8] = {
 
 static int blink_array_dev_open(struct inode * inode, struct file * filp)
 {
-	printk(KERN_INFO "blink_array_dev open\n");
+	func_in();
+	func_out();
 	return 0;
 }
 
 static int blink_array_dev_release(struct inode * inode, struct file * filp)
 {
-	printk(KERN_INFO "blink_array_dev release\n");
+	func_in();
+	func_out();
 	return 0;
 }
 
@@ -43,6 +58,7 @@ static ssize_t blink_array_dev_read(struct file * filp, char __user * up, size_t
 	int value=0;
 	int gpio_num=0;
 	int re=0;
+	func_in();
 
 	if(*off<0 || *off>=sizeof(gpio_array))
 	{
@@ -71,9 +87,10 @@ static ssize_t blink_array_dev_read(struct file * filp, char __user * up, size_t
 
 	re = 1;
 
-	exit_read:
+exit_read:
 		gpio_free(gpio_num);
-	exit_read_no_gpio:
+exit_read_no_gpio:
+		func_out();
 		return re;
 }
 
@@ -81,8 +98,10 @@ static ssize_t blink_array_dev_write(struct file * filp, const char __user * up,
 {
 	char value_chr;
 	int re=0;
-	int gpio_num = gpio_array[*off];
+	int gpio_num;
+	func_in();
 
+	gpio_num = gpio_array[*off];
 	if(copy_from_user(&value_chr,up, 1 ))
 	{	
 		re = -EFAULT;
@@ -95,15 +114,17 @@ static ssize_t blink_array_dev_write(struct file * filp, const char __user * up,
 
 	re = 1;
 
-	exit_write:
+exit_write:
 		gpio_free(gpio_num);
-	exit_write_no_gpio:
+exit_write_no_gpio:
+		func_out();
 		return re;
 }
 
 static loff_t blink_array_dev_llseek(struct file * filp, loff_t off, int where)
 {
 	loff_t newpos;
+	func_in();
 
 	switch(where)
 	{
@@ -127,6 +148,7 @@ static loff_t blink_array_dev_llseek(struct file * filp, loff_t off, int where)
 
 	filp->f_pos = newpos;
 	printk(KERN_INFO "blink_array_dev llseek. f_pos=%d\n",(int)(filp->f_pos));
+	func_out();
 	return newpos;
 }
 
@@ -149,8 +171,9 @@ static struct miscdevice blink_array_dev =
 
 static int __init blink_array_dev_init(void)
 {
+	func_in();
 	misc_register(&blink_array_dev);
-	printk(KERN_INFO "blink_array_dev init\n");
+	func_out();
 	return 0;
 }
 

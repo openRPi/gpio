@@ -3,7 +3,7 @@ CFLAGS = -Wall -g
 lib = ../../lib
 bin_name = tft_run.exe
 
-default: lcd.c pic.c gui.c main.c ../../lib/bcm2835.c
+default: pic.o main.c ../../lib/bcm2835.c lcd_lib.c
 	$(CC) $(CFLAGS) $^ -I $(lib) -L $(lib) -o $(bin_name)
 
 clean:

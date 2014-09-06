@@ -2,8 +2,7 @@
 
 ifneq ($(KERNELRELEASE),)
 	# kbuild syntax. dependency relationshsip of files and target modules are listed here.
-	mymodule-objs := buf_dev.o
-	obj-m := buf_dev.o
+	obj-m := spi_tool.o
 else
 	PWD  := $(shell pwd)
 	KDIR := ~/project/git/rpi_linux
