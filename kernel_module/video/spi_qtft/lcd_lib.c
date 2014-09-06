@@ -1,7 +1,6 @@
 // ILI9341 芯片
 // 
 #include "lcd_lib.h"
-#include "bcm2835.h"
 
 #define NULL ((void *)0)
 

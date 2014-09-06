@@ -64,12 +64,19 @@ ssize_t ops_read(struct fb_info *info, char __user *buf, size_t count, loff_t *p
 		goto out;
 	}
 
-	x1 = p%(info->var.xres);
-	y1 = p/(info->var.yres);
-	x2 = (p+count)%(info->var.xres);
-	y2 = (p+count)/(info->var.yres);
-
-	err = lcd_memory_area_read(x1,y1,x2,y2,fb_buf,count);
+	x1 = p%(info->var.xres*2);
+	y1 = p/(info->var.yres*2);
+	x2 = (p+count)%(info->var.xres*2);
+	y2 = (p+count)/(info->var.yres*2);
+ 	
+ 	if(p==0)
+ 	{
+ 		err = lcd_cursor_reset();
+ 		if(err)
+ 			goto err0;
+ 	}
+	
+	err = lcd_memory_area_read(fb_buf,count,1);
 	if(err)
 		goto err0;
 
